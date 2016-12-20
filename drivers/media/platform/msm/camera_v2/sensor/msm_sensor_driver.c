@@ -21,7 +21,7 @@
 #define SENSOR_INFO
 /* Logging macro */
 #undef CDBG
-#define CDBG(fmt, args...) pr_debug(fmt, ##args)
+#define CDBG(fmt, args...) pr_err(fmt, ##args)
 
 #define SENSOR_MAX_MOUNTANGLE (360)
 
