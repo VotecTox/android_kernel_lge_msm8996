@@ -11,7 +11,8 @@ struct anx7418;
 
 struct anx7418_charger {
 	struct anx7418 *anx;
-	struct power_supply psy;
+	struct power_supply *psy;
+	struct power_supply_desc psy_desc;
 
 	bool is_otg;
 	bool is_present;

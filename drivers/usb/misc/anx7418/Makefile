@@ -12,3 +12,6 @@ obj-$(CONFIG_USB_ANX7418) += anx7418_charger.o
 obj-$(CONFIG_USB_ANX7418) += anx7418_firmware.o
 obj-$(CONFIG_USB_ANX7418) += anx7418_debugfs.o
 obj-$(CONFIG_USB_ANX7418) += anx7418_sysfs.o
+#ifeq ($(CONFIG_DUAL_ROLE_USB_INTF),y)
+#obj-$(CONFIG_USB_ANX7418) += anx7418_drp.o
+#endif

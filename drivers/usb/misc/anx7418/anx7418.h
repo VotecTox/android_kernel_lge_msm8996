@@ -36,6 +36,10 @@ struct anx7418 {
 	struct regulator *vbus_reg;
 	struct power_supply *usb_psy;
 	struct power_supply *batt_psy;
+	struct power_supply_desc usb_psy_desc;
+	struct power_supply_desc batt_psy_desc;
+	struct power_supply_config usb_psy_cfg;
+	struct power_supply_config batt_psy_cfg;
 #endif
 
 	/* gpio */

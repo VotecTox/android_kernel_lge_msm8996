@@ -7,11 +7,11 @@ static ssize_t show_sbu_sel(struct device *dev, struct device_attribute *attr, c
 {
 	struct anx7418 *anx = dev_get_drvdata(dev);
 	int sbu_sel_gpio;
-	
+
 	sbu_sel_gpio = gpio_get_value(anx->sbu_sel_gpio);
 	dev_info(dev, "read anx->sbu_sel_gpio:%d\n", sbu_sel_gpio);
 
-	return sprintf(buf, "%d\n", sbu_sel_gpio); 
+	return sprintf(buf, "%d\n", sbu_sel_gpio);
 }
 static ssize_t store_sbu_sel(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 {
@@ -28,15 +28,16 @@ static ssize_t store_sbu_sel(struct device *dev, struct device_attribute *attr, 
 }
 static DEVICE_ATTR(sbu_sel, S_IRUGO | S_IWUSR | S_IWGRP, show_sbu_sel, store_sbu_sel);
 
+#ifdef CONFIG_LGE_ALICE_FRIENDS
 static ssize_t show_sbu2(struct device *dev, struct device_attribute *attr, char *buf)
 {
 	struct anx7418 *anx = dev_get_drvdata(dev);
 	int sbu2_gpio;
-	
+
 	sbu2_gpio = gpio_get_value(anx->ext_acc_en_gpio);
 	dev_info(dev, "read anx->sbu2_gpio:%d\n", sbu2_gpio);
 
-	return sprintf(buf, "%d\n", sbu2_gpio); 
+	return sprintf(buf, "%d\n", sbu2_gpio);
 }
 static ssize_t store_sbu2(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 {
@@ -57,15 +58,18 @@ static ssize_t store_sbu2(struct device *dev, struct device_attribute *attr, con
 	return count;
 }
 static DEVICE_ATTR(sbu2, S_IRUGO | S_IWUSR | S_IWGRP, show_sbu2, store_sbu2);
+#endif
 
 int anx7418_sysfs_init(struct anx7418 *anx)
 {
 	int retval = 0;
 	struct i2c_client *client = anx->client;
 
+#ifdef CONFIG_LGE_ALICE_FRIENDS
 	retval = device_create_file(&client->dev, &dev_attr_sbu2);
 	if (retval)
 		goto err_sbu2;
+#endif
 
 	retval = device_create_file(&client->dev, &dev_attr_sbu_sel);
 	if (retval)
@@ -73,7 +77,9 @@ int anx7418_sysfs_init(struct anx7418 *anx)
 
 	return 0;
 err_sbu_sel:
+#ifdef CONFIG_LGE_ALICE_FRIENDS
 err_sbu2:
 	device_remove_file(&client->dev, &dev_attr_sbu2);
+#endif
 	return -retval;
 }

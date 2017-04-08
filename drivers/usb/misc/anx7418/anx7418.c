@@ -78,16 +78,16 @@ static irqreturn_t ext_acc_en_irq_thread(int irq, void *_anx)
 	if (ext_acc_en == HM_EARJACK_ATTACH) {
 		dev_info(cdev, "HM: Host\n");
 
-		power_supply_set_present(anx->usb_psy, false);
+		//power_supply_set_present(anx->usb_psy, false);
 
-		power_supply_set_usb_otg(anx->usb_psy, 1);
+		//power_supply_set_usb_otg(anx->usb_psy, 1);
 		anx->dr = DUAL_ROLE_PROP_DR_HOST;
 
 		hm_earjack_changed(anx->hm, true);
 	} else {
 		dev_info(cdev, "HM: Device\n");
 
-		power_supply_set_usb_otg(anx->usb_psy, 0);
+		//power_supply_set_usb_otg(anx->usb_psy, 0);
 		anx->dr = DUAL_ROLE_PROP_DR_DEVICE;
 
 		hm_earjack_changed(anx->hm, false);
@@ -153,19 +153,19 @@ int anx7418_set_pr(struct anx7418 *anx, int pr)
 	case DUAL_ROLE_PROP_PR_SRC:
 #ifdef CONFIG_LGE_USB_TYPE_C
 		if (!IS_INTF_IRQ_SUPPORT(anx))
-			power_supply_set_usb_otg(&anx->chg.psy, 1);
+			//power_supply_set_usb_otg(&anx->chg.psy, 1);
 #endif
 		break;
 
 	case DUAL_ROLE_PROP_PR_SNK:
 #ifdef CONFIG_LGE_USB_TYPE_C
-		power_supply_set_usb_otg(&anx->chg.psy, 0);
+		//power_supply_set_usb_otg(&anx->chg.psy, 0);
 #endif
 		break;
 
 	case DUAL_ROLE_PROP_PR_NONE:
 #ifdef CONFIG_LGE_USB_TYPE_C
-		power_supply_set_usb_otg(&anx->chg.psy, 0);
+		//power_supply_set_usb_otg(&anx->chg.psy, 0);
 #endif
 		break;
 
@@ -192,7 +192,7 @@ int anx7418_set_dr(struct anx7418 *anx, int dr)
 		anx7418_set_dr(anx, DUAL_ROLE_PROP_DR_NONE);
 
 #ifdef CONFIG_LGE_USB_TYPE_C
-		power_supply_set_usb_otg(anx->usb_psy, 1);
+		//power_supply_set_usb_otg(anx->usb_psy, 1);
 #endif
 		break;
 
@@ -200,17 +200,17 @@ int anx7418_set_dr(struct anx7418 *anx, int dr)
 		anx7418_set_dr(anx, DUAL_ROLE_PROP_DR_NONE);
 
 #ifdef CONFIG_LGE_USB_TYPE_C
-		power_supply_set_present(anx->usb_psy, 1);
+		//power_supply_set_present(anx->usb_psy, 1);
 #endif
 		break;
 
 	case DUAL_ROLE_PROP_DR_NONE:
 #ifdef CONFIG_LGE_USB_TYPE_C
 		if (anx->dr == DUAL_ROLE_PROP_DR_HOST)
-			power_supply_set_usb_otg(anx->usb_psy, 0);
+			//power_supply_set_usb_otg(anx->usb_psy, 0);
 
-		if (anx->dr == DUAL_ROLE_PROP_DR_DEVICE)
-			power_supply_set_present(anx->usb_psy, 0);
+		//if (anx->dr == DUAL_ROLE_PROP_DR_DEVICE)
+			//power_supply_set_present(anx->usb_psy, 0);
 #endif
 		break;
 
@@ -369,7 +369,7 @@ int anx7418_pwr_on(struct anx7418 *anx, int is_on)
 	if (!is_on && anx->is_dbg_acc) {
 #ifdef CONFIG_LGE_USB_TYPE_C
 		prop.intval = 1;
-		rc = anx->batt_psy->set_property(anx->batt_psy,
+		rc = power_supply_set_property(anx->batt_psy,
 				POWER_SUPPLY_PROP_DP_ALT_MODE, &prop);
 		if (rc < 0)
 			dev_err(cdev, "set_property(DP_ALT_MODE) error %d\n", rc);
@@ -471,7 +471,7 @@ set_as_ufp:
 #endif
 #ifdef CONFIG_LGE_USB_TYPE_C
 					// Check vbus on?
-					anx->usb_psy->get_property(anx->usb_psy,
+					power_supply_get_property(anx->usb_psy,
 							POWER_SUPPLY_PROP_DP_DM, &prop);
 					if (prop.intval != POWER_SUPPLY_DP_DM_DPF_DMF) {
 						// vbus not detected
@@ -483,7 +483,7 @@ set_as_ufp:
 
 #ifdef CONFIG_LGE_USB_TYPE_C
 					prop.intval = 0;
-					rc = anx->batt_psy->set_property(anx->batt_psy,
+					rc = power_supply_set_property(anx->batt_psy,
 							POWER_SUPPLY_PROP_DP_ALT_MODE, &prop);
 					if (rc < 0)
 						dev_err(cdev, "set_property(DP_ALT_MODE) error %d\n", rc);
@@ -667,7 +667,7 @@ static void i2c_work(struct work_struct *w)
 				anx_dbg_event("Debug Accessory", 0);
 #ifdef CONFIG_LGE_USB_TYPE_C
 				prop.intval = 0;
-				rc = anx->batt_psy->set_property(anx->batt_psy,
+				rc = power_supply_set_property(anx->batt_psy,
 						POWER_SUPPLY_PROP_DP_ALT_MODE, &prop);
 				if (rc < 0)
 					dev_err(cdev, "set_property(DP_ALT_MODE) error %d\n", rc);
@@ -695,7 +695,7 @@ static void i2c_work(struct work_struct *w)
 #ifdef CONFIG_LGE_ALICE_FRIENDS
 				if (anx->friends == LGE_ALICE_FRIENDS_NONE)
 #endif
-				if (!anx->is_tried_snk && !lge_get_factory_boot()) {
+				if (!anx->is_tried_snk /*&& !lge_get_factory_boot()*/) {
 					dev_dbg(cdev, "%s: try_snk\n", __func__);
 
 					anx7418_i2c_unlock(client);
@@ -715,7 +715,7 @@ set_dfp:
 				anx_dbg_event("DFP", 0);
 
 				anx7418_set_mode(anx, DUAL_ROLE_PROP_MODE_DFP);
-				power_supply_set_usb_otg(&anx->chg.psy, 1);
+				//power_supply_set_usb_otg(&anx->chg.psy, 1);
 				anx->pr = DUAL_ROLE_PROP_PR_SRC;
 
 				anx7418_set_dr(anx, DUAL_ROLE_PROP_DR_HOST);
@@ -738,11 +738,11 @@ set_dfp:
 	if (!(intf_irq_mask & VBUS_CHG) && (irq & VBUS_CHG)) {
 		if (status & VBUS_STATUS) {
 			dev_dbg(cdev, "%s: VBUS ON\n", __func__);
-			power_supply_set_usb_otg(&anx->chg.psy, 1);
+			//power_supply_set_usb_otg(&anx->chg.psy, 1);
 			anx->pr = DUAL_ROLE_PROP_PR_SRC;
 		} else {
 			dev_dbg(cdev, "%s: VBUS OFF\n", __func__);
-			power_supply_set_usb_otg(&anx->chg.psy, 0);
+			//power_supply_set_usb_otg(&anx->chg.psy, 0);
 			anx->pr = DUAL_ROLE_PROP_PR_SNK;
 		}
 #ifdef CONFIG_DUAL_ROLE_USB_INTF
@@ -772,14 +772,17 @@ set_dfp:
 
 		} else if (status & DATA_ROLE) {
 			rc = __anx7418_read_reg(client, ANALOG_CTRL_7);
-			if ( (rc & 0x0F) == 0x05 &&
-			     (anx->friends == LGE_ALICE_FRIENDS_NONE)) { // CC1_Rd and CC2_Rd
+			if ( (rc & 0x0F) == 0x05
+#ifdef CONFIG_LGE_ALICE_FRIENDS
+			     && (anx->friends == LGE_ALICE_FRIENDS_NONE)
+#endif
+			 	) { // CC1_Rd and CC2_Rd
 
 				dev_info(cdev, "%s: Debug Accessory Mode\n", __func__);
 				anx_dbg_event("Debug Accessory", 0);
 #ifdef CONFIG_LGE_USB_TYPE_C
 				prop.intval = 0;
-				rc = anx->batt_psy->set_property(anx->batt_psy,
+				rc = power_supply_set_property(anx->batt_psy,
 						POWER_SUPPLY_PROP_DP_ALT_MODE, &prop);
 				if (rc < 0)
 					dev_err(cdev, "set_property(DP_ALT_MODE) error %d\n", rc);
