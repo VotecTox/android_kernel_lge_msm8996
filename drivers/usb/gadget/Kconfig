@@ -573,6 +573,11 @@ config USB_CONFIGFS_F_CCID
 	  USB CCID function driver creats transport layer between the
 	  userspace CCID component and the Windows Host.
 
+config LGE_USB_TYPE_C
+	bool "USB Type-C support"
+	help
+	  Say Y here to add support for USB Type-C.
+
 source "drivers/usb/gadget/legacy/Kconfig"
 
 endchoice

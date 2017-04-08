@@ -29,3 +29,7 @@ obj-$(CONFIG_USB_CHAOSKEY)		+= chaoskey.o
 
 obj-$(CONFIG_USB_SISUSBVGA)		+= sisusbvga/
 obj-$(CONFIG_USB_LINK_LAYER_TEST)	+= lvstest.o
+
+obj-$(CONFIG_USB_ANX7418)		+= anx7418/
+obj-$(CONFIG_USB_ANX7688)		+= anx7688/
+obj-$(CONFIG_USB_TUSB422)		+= tusb422/
