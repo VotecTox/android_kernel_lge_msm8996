@@ -650,15 +650,12 @@ void diagfwd_close_transport(uint8_t transport, uint8_t peripheral)
 		break;
 	default:
 		return;
-
 	}
 
+	mutex_lock(&driver->diagfwd_channel_mutex);
 	fwd_info = &early_init_info[transport][peripheral];
 	if (fwd_info->p_ops && fwd_info->p_ops->close)
 		fwd_info->p_ops->close(fwd_info->ctxt);
-	DIAG_LOG(DIAG_DEBUG_PERIPHERALS," %d:diagfwd_channel_mutex to obtain ", __LINE__);
-	mutex_lock(&driver->diagfwd_channel_mutex);
-	DIAG_LOG(DIAG_DEBUG_PERIPHERALS," %d:diagfwd_channel_mutex obtained ", __LINE__);
 	fwd_info = &early_init_info[transport_open][peripheral];
 	dest_info = &peripheral_info[TYPE_CNTL][peripheral];
 	dest_info->inited = 1;

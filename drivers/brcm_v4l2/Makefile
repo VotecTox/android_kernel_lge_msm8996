@@ -14,3 +14,7 @@ ant_drv-objs := antdrv_main.o antdrv_v4l2.o
 
 ccflags-y := -DVERSION="\"$(BUILD_MODULE_VERSION)\"" -DLPM_BLUESLEEP
 ccflags-y += -DDEF_V4L2_FM_AUDIO_PATH=FM_AUDIO_I2S
+
+ifneq ($(CONFIG_FM_V4L2),y)
+ccflags-y += -DV4L2_FM_DEBUG=FALSE
+endif

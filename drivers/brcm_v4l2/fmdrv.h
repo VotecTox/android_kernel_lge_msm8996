@@ -253,6 +253,7 @@ struct fmdrv_ops {
     unsigned char aud_ctrl;     /* Current Audio Control (STEREO/MONO/NONE) */
     struct fm_rx rx;                         /* FM receiver info */
     struct fm_device_info device_info; /* FM Device info */
+    struct mutex wait_completion_lock;
 };
 
 #define GET_PI_CODE     1

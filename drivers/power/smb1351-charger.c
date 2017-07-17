@@ -2601,6 +2601,10 @@ static int smb1351_parallel_set_property(struct power_supply *psy,
 				pr_err("%suspend charger failed\n",
 						val->intval ? "Un-s" : "S");
 		}
+#ifdef CONFIG_LGE_PM_PARALLEL_CHARGING
+		else
+			chip->usb_suspended_status &= ~USER;
+#endif
 		break;
 	case POWER_SUPPLY_PROP_PRESENT:
 		rc = smb1351_parallel_set_chg_present(chip, val->intval);

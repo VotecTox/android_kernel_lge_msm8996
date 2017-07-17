@@ -191,11 +191,7 @@ void msm_isp_get_timestamp(struct msm_isp_timestamp *time_stamp,
 		time_stamp->buf_time.tv_sec    = time_stamp->vt_time.tv_sec;
 		time_stamp->buf_time.tv_usec   = time_stamp->vt_time.tv_usec;
 	} else	{
-#ifndef CONFIG_MACH_LGE
 		get_monotonic_boottime(&ts);
-#else
-		ktime_get_ts(&ts);   //LGE_CHANGE, QCT patch(0228081) for AV sync issue on video recording, sunjae.jung@lge.com, 2015-12-23
-#endif
 		time_stamp->buf_time.tv_sec    = ts.tv_sec;
 		time_stamp->buf_time.tv_usec   = ts.tv_nsec/1000;
 	}
@@ -388,7 +384,8 @@ static int msm_isp_start_fetch_engine_multi_pass(struct vfe_device *vfe_dev,
 				fe_cfg->output_stream_id);
 			return -EINVAL;
 		}
-
+		vfe_dev->hw_info->vfe_ops.core_ops.reset_hw(vfe_dev,
+			0, 1);
 		msm_isp_reset_framedrop(vfe_dev, stream_info);
 
 		rc = msm_isp_cfg_offline_ping_pong_address(vfe_dev, stream_info,

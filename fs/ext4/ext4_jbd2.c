@@ -95,7 +95,6 @@ int __ext4_journal_stop(const char *where, unsigned int line, handle_t *handle)
 	}
 
 	sb = handle->h_transaction->t_journal->j_private;
-	err = handle->h_err;
 	rc = jbd2_journal_stop(handle);
 
 	if (!err)

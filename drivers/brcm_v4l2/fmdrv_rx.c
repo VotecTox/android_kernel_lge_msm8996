@@ -510,9 +510,11 @@ int fm_rx_set_frequency(struct fmdrv_ops *fmdev, unsigned int freq_to_set)
     }
 
     /* Wait for tune ended interrupt */
+    mutex_lock(&fmdev->wait_completion_lock);
     init_completion(&fmdev->maintask_completion);
     timeleft = wait_for_completion_timeout(&fmdev->maintask_completion,
                            FM_DRV_TX_TIMEOUT);
+    mutex_unlock(&fmdev->wait_completion_lock);
     if (!timeleft)
     {
         V4L2_FM_DRV_ERR("(fmdrv) Timeout(%d sec),didn't get tune ended interrupt",\

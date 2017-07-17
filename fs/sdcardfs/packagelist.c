@@ -482,6 +482,14 @@ void * packagelist_create(const char *dev_name, struct super_block *sb)
 		INIT_LIST_HEAD(&pkgl_dat->pkg_supers.list);
 
 		pkg_super = kmalloc(sizeof(*pkg_super), GFP_KERNEL | __GFP_ZERO);
+		if (!pkg_super) {
+			printk(KERN_ERR "sdcardfs: creating pkg_super failed\n");
+			kfree(pkgl_dat);
+			kfree(g_pkgl);
+			mutex_unlock (&pkgl_lock);
+			return ERR_PTR(-ENOMEM);
+		}
+
 		pkg_super->sb = sb;
 		pkg_super->type = ((struct sdcardfs_sb_info *)sb->s_fs_info)->options.type;
 		list_add_tail(&pkg_super->list, &pkgl_dat->pkg_supers.list);
@@ -504,6 +512,12 @@ void * packagelist_create(const char *dev_name, struct super_block *sb)
 	}else {
 		pkgl_dat = g_pkgl->pkgl_id;
 		pkg_super = kmalloc(sizeof(*pkg_super), GFP_KERNEL | __GFP_ZERO);
+		if (!pkg_super) {
+			printk(KERN_ERR "sdcardfs: creating pkg_super failed\n");
+			mutex_unlock (&pkgl_lock);
+			return ERR_PTR(-ENOMEM);
+		}
+
 		pkg_super->sb = sb;
 		pkg_super->type = ((struct sdcardfs_sb_info *)sb->s_fs_info)->options.type;
 		packagelist_lock(pkgl_dat);

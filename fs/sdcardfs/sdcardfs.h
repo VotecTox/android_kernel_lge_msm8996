@@ -186,6 +186,8 @@ extern struct dentry *sdcardfs_lookup(struct inode *dir, struct dentry *dentry,
 extern int sdcardfs_interpose(struct dentry *dentry, struct super_block *sb,
 			    struct path *lower_path);
 extern long sdcardfs_propagate_unlink(struct inode *parent, char* pathname);
+extern long sdcardfs_propagate_rename(struct inode *parent, char * oldname, char * newname);
+
 
 /* file private data */
 struct sdcardfs_file_info {

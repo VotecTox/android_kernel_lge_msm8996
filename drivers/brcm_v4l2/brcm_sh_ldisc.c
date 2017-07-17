@@ -271,7 +271,9 @@ int dbg_bt_drv(char *p_conf_name, char *p_conf_value)
 int dbg_fm_drv(char *p_conf_name, char *p_conf_value)
 {
     pr_info("%s = %s\n", p_conf_name, p_conf_value);
+#if (defined(V4L2_FM_DEBUG) && (V4L2_FM_DEBUG == TRUE))	
     sscanf(p_conf_value, "%d", &fm_dbg_param);
+#endif
     return 0;
 }
 
@@ -945,6 +947,12 @@ static int brcm_hci_uart_set_proto(struct hci_uart *hu, int id)
 
     hu->proto = p;
     BT_LDISC_DBG(V4L2_DBG_INIT, "%p", p);
+
+//BT_S : [CONBT-2444][CSP#97749] move complete ldisc to make patchram download procedure delayed until UART protol set
+   /* installation of N_BRCM_HCI ldisc complete */
+    sh_ldisc_complete(hu);
+//BT_E : [CONBT-2444][CSP#97749] move complete ldisk to make patchram download procedure delayed until UART protol set
+
     return 0;
 }
 
@@ -2030,9 +2038,10 @@ static int brcm_hci_uart_tty_open(struct tty_struct *tty)
     }
 #endif
 
+//BT_S : [CONBT-2444][CSP#97749] move complete ldisc to make patchram download procedure delayed until UART protol set
    /* installation of N_BRCM_HCI ldisc complete */
-    sh_ldisc_complete(hu);
-
+//    sh_ldisc_complete(hu);
+//BT_E : [CONBT-2444][CSP#97749] move complete ldisc to make patchram download procedure delayed until UART protol set
     return 0;
 }
 

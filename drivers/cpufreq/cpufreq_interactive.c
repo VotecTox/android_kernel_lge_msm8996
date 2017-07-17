@@ -31,6 +31,7 @@
 #include <linux/workqueue.h>
 #include <linux/kthread.h>
 #include <linux/slab.h>
+#include <linux/cpu.h>
 
 #ifdef CONFIG_LGE_PM_TRITON
 #include "triton.h"
@@ -105,10 +106,16 @@ u32 cancun_gov_en = 1;
 #else
 u32 cancun_gov_en = 1;
 #endif
+u32 cancun_is_game = 0;
+
 u32 cancun_is_compact = 0;
 u32 cancun_is_gpubound = 1;
+u32 cancun_is_dbot = 1;
+
 u32 cancun_compact_target_load = 95;
 u32 cancun_gpu_target_load = 95;
+u32 cancun_dbot_target_load = 95;
+
 u32 cancun_gpubusy_thres = 60;
 u32 cancun_gpu_range_start_freq = 214000000;
 u32 cancun_gpu_range_end_freq = 315000000;
@@ -118,12 +125,20 @@ u32 cancun_compact_opt_silver_freq = 1228800;
 u32 cancun_compact_opt_gold_freq = 1478400;
 u32 cancun_compact_disable = 0;
 
+/* Cancun DBoT variable */
+#define MAX_DIFF_TEMP           900
+u32 cancun_dbot_opt_freq = 1036800;
+long vts_temp_heat_threshold = 380; /* 38 degree*/
+long vts_cpu_diff_threshold = 8;
+u32 heating_status = 0;
+int cancun_dbot_boundary = 0;
 
 /* Cancun governor variable*/
 u32 gpubound_status = 0;
 u32 compactmode_status = 0;
 u64 gpu_busytime =  0ULL;
 u64 gpu_idletime =  0ULL;
+
 #endif /*CONFIG_LGE_PM_CANCUN*/
 
 struct cpufreq_interactive_tunables {
@@ -401,6 +416,15 @@ static unsigned int choose_freq(struct cpufreq_interactive_policyinfo *pcpu,
 					}
 				}
 			}
+			if(heating_status){
+				if(pcpu->policy->cpu < 2){}
+				else{
+					if(freq >= cancun_dbot_opt_freq){
+						tl = cancun_dbot_target_load;
+						freq_rel = CPUFREQ_RELATION_H;
+					}
+				}
+			}
 		}
 #endif /*CONFIG_LGE_PM_CANCUN*/
 
@@ -507,6 +531,11 @@ void check_cancun_status(int cpu,u64 now)
 	extern int gpu_max_power_level;
 	extern unsigned int gpu_busy_load;
 	unsigned int cpu_online_num;
+	long diff_temp = 0;
+	long vts_diff_temp = 0;
+	long vts_cpu_diff_thres = 0;
+	extern unsigned long cancun_dbot_vts_temp;
+	struct cpu_pwr_stats *per_cpu_info = get_cpu_pwr_stats();
 
 	cpu_online_num = num_online_cpus();
 
@@ -523,10 +552,50 @@ void check_cancun_status(int cpu,u64 now)
 		gpu_busytime = 0;
 		gpubound_status = 0;
 		compactmode_status = 0;
+		heating_status = 0;
+		cancun_dbot_boundary = 0;
 		return ;
 	}
 
-	/* 1. check compact mode status */
+	/* 1. Cancun DBoT - CPU heat status */
+	if(cancun_is_dbot && cancun_is_game){
+		diff_temp = per_cpu_info[2].temp - (long)cancun_dbot_vts_temp / 10;
+
+		vts_diff_temp = (long)(cancun_dbot_vts_temp - vts_temp_heat_threshold) / 10 * 2;
+		vts_cpu_diff_thres = vts_cpu_diff_threshold - vts_diff_temp;
+
+		if(cancun_dbot_vts_temp >= vts_temp_heat_threshold
+			&& cancun_dbot_vts_temp < MAX_DIFF_TEMP){
+			if(cancun_dbot_boundary == 0)
+				printk("[cancun] dbot boundary in.\n");
+			cancun_dbot_boundary = 1;
+		}
+		else{
+			if(cancun_dbot_boundary == 1)
+				printk("[cancun] dbot boundary out.\n");
+			cancun_dbot_boundary = 0;
+			heating_status = 0;
+		}
+
+		if(cancun_dbot_boundary){
+			/* temperature increase now */
+			if(diff_temp >= vts_cpu_diff_thres){
+				heating_status = 1;
+			}
+			else{
+				heating_status = 0;
+			}
+		}
+		else{
+			heating_status = 0;
+		}
+	}
+	else{
+		heating_status = 0;
+		cancun_dbot_boundary = 0;
+	}
+
+	/* 2. check compact mode status */
 	if(cancun_is_compact && !cancun_compact_disable){
 		if(compactmode_status == 0){
 			printk("[cancun] compact cpu %d tl to %d, compact:%d online:%d\n"
@@ -544,7 +613,7 @@ void check_cancun_status(int cpu,u64 now)
 		compactmode_status = 0;
 	}
 
-	/* 2. check gpu bound status */
+	/* 3. check gpu bound status */
 	if(cancun_is_gpubound){
 		if(gpu_power_level >= cancun_gpu_range_start_freq
 			&& gpu_power_level <=  cancun_gpu_range_end_freq
@@ -968,8 +1037,9 @@ static int load_change_callback(struct notifier_block *nb, unsigned long val,
 	spin_unlock_irqrestore(&ppol->target_freq_lock, flags);
 
 	if (!hrtimer_is_queued(&ppol->notif_timer))
-		hrtimer_start(&ppol->notif_timer, ms_to_ktime(1),
-			      HRTIMER_MODE_REL);
+		__hrtimer_start_range_ns(&ppol->notif_timer, ms_to_ktime(1),
+				0, HRTIMER_MODE_REL, 0);
+
 exit:
 	up_read(&ppol->enable_sem);
 	return 0;
@@ -1433,6 +1503,8 @@ static ssize_t store_cancun_gov_enable(
 	gpu_idletime = 0ULL;
 	gpubound_status = 0;
 	compactmode_status = 0;
+	heating_status = 0;
+	cancun_dbot_boundary = 0;
 
 	printk("[cancun] cancun governor enable or disable : %ld\n",val);
 
@@ -1448,6 +1520,29 @@ static ssize_t show_is_cancun_activated(
 		return sprintf(buf, "0\n");
 }
 
+static ssize_t show_cancun_is_game(
+		struct cpufreq_interactive_tunables *tunables, char *buf)
+{
+	return sprintf(buf, "%u\n", cancun_is_game);
+}
+
+static ssize_t store_cancun_is_game(
+		struct cpufreq_interactive_tunables *tunables, const char *buf,
+		size_t count)
+{
+	int ret;
+	unsigned long int val;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+	cancun_is_game = val;
+	heating_status = 0;
+	cancun_dbot_boundary = 0;
+	printk("[cancun] cancun_is_game is set to %ld\n",val);
+
+	return count;
+}
 
 static ssize_t show_cancun_is_compact(
 		struct cpufreq_interactive_tunables *tunables, char *buf)
@@ -1700,8 +1795,143 @@ static ssize_t store_cancun_compact_disable(
 
 	return count;
 }
-#endif /* CONFIG_LGE_PM_CANCUN */
 
+static ssize_t show_cancun_is_dbot(
+		struct cpufreq_interactive_tunables *tunables, char *buf)
+{
+	return sprintf(buf, "%u\n", cancun_is_dbot);
+}
+
+static ssize_t store_cancun_is_dbot(
+		struct cpufreq_interactive_tunables *tunables, const char *buf,
+		size_t count)
+{
+	int ret;
+	unsigned long val;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+
+	cancun_is_dbot = val;
+	heating_status = 0;
+	cancun_dbot_boundary = 0;
+	printk("[cancun] cancun_is_dbot : %ld\n", val);
+
+	return count;
+}
+
+static ssize_t show_cancun_dbot_target_load(
+		struct cpufreq_interactive_tunables *tunables, char *buf)
+{
+	return sprintf(buf, "%u\n", cancun_dbot_target_load);
+}
+static ssize_t store_cancun_dbot_target_load(
+		struct cpufreq_interactive_tunables *tunables, const char *buf,
+		size_t count)
+{
+	int ret;
+	unsigned long val;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+	cancun_dbot_target_load = val;
+	printk("[cancun] cancun_dbot_target_load : %ld\n", val);
+
+	return count;
+}
+
+static ssize_t show_cancun_dbot_opt_freq(
+		struct cpufreq_interactive_tunables *tunables, char *buf)
+{
+	return sprintf(buf, "%u\n", cancun_dbot_opt_freq);
+}
+
+static ssize_t store_cancun_dbot_opt_freq(
+		struct cpufreq_interactive_tunables *tunables,const char *buf,
+		size_t count)
+{
+	int ret;
+	unsigned long val;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+	cancun_dbot_opt_freq = val;
+	printk("[cancun] cancun_dbot_opt_freq : %ld\n", val);
+
+	return count;
+}
+
+static ssize_t show_cancun_vts_temp_heat_threshold(
+		struct cpufreq_interactive_tunables *tunables, char *buf)
+{
+	return sprintf(buf, "%ld\n", vts_temp_heat_threshold);
+}
+
+static ssize_t store_cancun_vts_temp_heat_threshold(
+		struct cpufreq_interactive_tunables *tunables, const char *buf,
+		size_t count)
+{
+	int ret;
+	unsigned long val;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+
+	vts_temp_heat_threshold = val;
+	printk("[cancun] vts_temp_heat_threshold : %ld\n", val);
+
+	return count;
+}
+
+static ssize_t show_cancun_vts_cpu_diff_threshold(
+		struct cpufreq_interactive_tunables *tunables, char *buf)
+{
+	return sprintf(buf, "%ld\n", vts_cpu_diff_threshold);
+}
+
+static ssize_t store_cancun_vts_cpu_diff_threshold(
+		struct cpufreq_interactive_tunables *tunables, const char *buf,
+		size_t count)
+{
+	int ret;
+	unsigned long val;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+
+	vts_cpu_diff_threshold = val;
+	printk("[cancun] vts_cpu_diff_threshold : %ld\n", val);
+
+	return count;
+}
+
+static ssize_t show_cancun_dbot_temp(
+		struct cpufreq_interactive_tunables *tunables, char *buf)
+{
+	extern unsigned long cancun_dbot_vts_temp;
+	extern unsigned int cancun_dbot_xo_temp;
+	extern unsigned int cancun_dbot_bd2_temp;
+	struct cpu_pwr_stats *per_cpu_info = get_cpu_pwr_stats();
+
+	return sprintf(buf,"cpu0:%ld cpu2:%ld vts:%ld xo:%d bd2:%d heat:%d\n",
+		per_cpu_info[0].temp, per_cpu_info[2].temp,
+		cancun_dbot_vts_temp, cancun_dbot_xo_temp, cancun_dbot_bd2_temp,
+		heating_status);
+}
+
+static ssize_t store_cancun_dbot_temp(
+		struct cpufreq_interactive_tunables *tunables, const char *buf,
+		size_t count)
+{
+	return count;
+}
+
+#endif /* CONFIG_LGE_PM_CANCUN */
 
 static int cpufreq_interactive_enable_sched_input(
 			struct cpufreq_interactive_tunables *tunables)
@@ -1901,6 +2131,7 @@ show_store_gov_pol_sys(enable_prediction);
 #ifdef CONFIG_LGE_PM_CANCUN
 show_store_gov_pol_sys(cancun_gov_enable);
 show_gov_pol_sys(is_cancun_activated);
+show_store_gov_pol_sys(cancun_is_game);
 show_store_gov_pol_sys(cancun_is_compact);
 show_store_gov_pol_sys(cancun_is_gpubound);
 show_store_gov_pol_sys(cancun_compact_target_load);
@@ -1913,6 +2144,12 @@ show_store_gov_pol_sys(cancun_gpu_range_out_time);
 show_store_gov_pol_sys(cancun_compact_opt_silver_freq);
 show_store_gov_pol_sys(cancun_compact_opt_gold_freq);
 show_store_gov_pol_sys(cancun_compact_disable);
+show_store_gov_pol_sys(cancun_is_dbot);
+show_store_gov_pol_sys(cancun_dbot_target_load);
+show_store_gov_pol_sys(cancun_dbot_opt_freq);
+show_store_gov_pol_sys(cancun_vts_temp_heat_threshold);
+show_store_gov_pol_sys(cancun_vts_cpu_diff_threshold);
+show_store_gov_pol_sys(cancun_dbot_temp);
 #endif /* CONFIG_LGE_PM_CANCUN */
 
 
@@ -1947,6 +2184,7 @@ gov_sys_pol_attr_rw(fast_ramp_down);
 gov_sys_pol_attr_rw(enable_prediction);
 #ifdef CONFIG_LGE_PM_CANCUN
 gov_sys_pol_attr_rw(cancun_gov_enable);
+gov_sys_pol_attr_rw(cancun_is_game);
 gov_sys_pol_attr_rw(cancun_is_compact);
 gov_sys_pol_attr_rw(cancun_is_gpubound);
 gov_sys_pol_attr_rw(cancun_compact_target_load);
@@ -1959,6 +2197,12 @@ gov_sys_pol_attr_rw(cancun_gpu_range_out_time);
 gov_sys_pol_attr_rw(cancun_compact_opt_silver_freq);
 gov_sys_pol_attr_rw(cancun_compact_opt_gold_freq);
 gov_sys_pol_attr_rw(cancun_compact_disable);
+gov_sys_pol_attr_rw(cancun_is_dbot);
+gov_sys_pol_attr_rw(cancun_dbot_target_load);
+gov_sys_pol_attr_rw(cancun_dbot_opt_freq);
+gov_sys_pol_attr_rw(cancun_vts_temp_heat_threshold);
+gov_sys_pol_attr_rw(cancun_vts_cpu_diff_threshold);
+gov_sys_pol_attr_rw(cancun_dbot_temp);
 #endif /*CONFIG_LGE_PM_CANCUN*/
 
 static struct global_attr boostpulse_gov_sys =
@@ -1999,6 +2243,7 @@ static struct attribute *interactive_attributes_gov_sys[] = {
 #ifdef CONFIG_LGE_PM_CANCUN
 	&cancun_gov_enable_gov_sys.attr,
 	&is_cancun_activated_gov_sys.attr,
+	&cancun_is_game_gov_sys.attr,
 	&cancun_is_compact_gov_sys.attr,
 	&cancun_is_gpubound_gov_sys.attr,
 	&cancun_compact_target_load_gov_sys.attr,
@@ -2011,6 +2256,12 @@ static struct attribute *interactive_attributes_gov_sys[] = {
 	&cancun_compact_opt_silver_freq_gov_sys.attr,
 	&cancun_compact_opt_gold_freq_gov_sys.attr,
 	&cancun_compact_disable_gov_sys.attr,
+	&cancun_is_dbot_gov_sys.attr,
+	&cancun_dbot_target_load_gov_sys.attr,
+	&cancun_dbot_opt_freq_gov_sys.attr,
+	&cancun_vts_temp_heat_threshold_gov_sys.attr,
+	&cancun_vts_cpu_diff_threshold_gov_sys.attr,
+	&cancun_dbot_temp_gov_sys.attr,
 #endif /*CONFIG_LGE_PM_CANCUN*/
 	NULL,
 };
@@ -2043,6 +2294,7 @@ static struct attribute *interactive_attributes_gov_pol[] = {
 #ifdef CONFIG_LGE_PM_CANCUN
 	&cancun_gov_enable_gov_pol.attr,
 	&is_cancun_activated_gov_pol.attr,
+	&cancun_is_game_gov_pol.attr,
 	&cancun_is_compact_gov_pol.attr,
 	&cancun_is_gpubound_gov_pol.attr,
 	&cancun_compact_target_load_gov_pol.attr,
@@ -2055,6 +2307,12 @@ static struct attribute *interactive_attributes_gov_pol[] = {
 	&cancun_compact_opt_silver_freq_gov_pol.attr,
 	&cancun_compact_opt_gold_freq_gov_pol.attr,
 	&cancun_compact_disable_gov_pol.attr,
+	&cancun_is_dbot_gov_pol.attr,
+	&cancun_dbot_target_load_gov_pol.attr,
+	&cancun_dbot_opt_freq_gov_pol.attr,
+	&cancun_vts_temp_heat_threshold_gov_pol.attr,
+	&cancun_vts_cpu_diff_threshold_gov_pol.attr,
+	&cancun_dbot_temp_gov_pol.attr,
 #endif /*CONFIG_LGE_PM_CANCUN*/
 	NULL,
 };

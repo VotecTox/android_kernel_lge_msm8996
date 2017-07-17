@@ -1793,6 +1793,58 @@ void mdss_dsi_panel_dsc_pps_send(struct mdss_dsi_ctrl_pdata *ctrl,
 	mdss_dsi_panel_cmds_send(ctrl, &pcmds, CMD_REQ_COMMIT);
 }
 
+static int mdss_dsi_parse_hdr_settings(struct device_node *np,
+		struct mdss_panel_info *pinfo)
+{
+	int rc = 0;
+	struct mdss_panel_hdr_properties *hdr_prop;
+
+	if (!np) {
+		pr_err("%s: device node pointer is NULL\n", __func__);
+		return -EINVAL;
+	}
+
+	if (!pinfo) {
+		pr_err("%s: panel info is NULL\n", __func__);
+		return -EINVAL;
+	}
+
+	hdr_prop = &pinfo->hdr_properties;
+	hdr_prop->hdr_enabled = of_property_read_bool(np,
+		"qcom,mdss-dsi-panel-hdr-enabled");
+
+	if (hdr_prop->hdr_enabled) {
+		rc = of_property_read_u32_array(np,
+				"qcom,mdss-dsi-panel-hdr-color-primaries",
+				hdr_prop->display_primaries,
+				DISPLAY_PRIMARIES_COUNT);
+		if (rc) {
+			pr_info("%s:%d, Unable to read color primaries,rc:%u",
+					__func__, __LINE__,
+					hdr_prop->hdr_enabled = false);
+		}
+
+		rc = of_property_read_u32(np,
+			"qcom,mdss-dsi-panel-peak-brightness",
+			&(hdr_prop->peak_brightness));
+		if (rc) {
+			pr_info("%s:%d, Unable to read hdr brightness, rc:%u",
+				__func__, __LINE__, rc);
+			hdr_prop->hdr_enabled = false;
+		}
+
+		rc = of_property_read_u32(np,
+			"qcom,mdss-dsi-panel-blackness-level",
+			&(hdr_prop->blackness_level));
+		if (rc) {
+			pr_info("%s:%d, Unable to read hdr brightness, rc:%u",
+				__func__, __LINE__, rc);
+			hdr_prop->hdr_enabled = false;
+		}
+	}
+	return 0;
+}
+
 static int mdss_dsi_parse_dsc_version(struct device_node *np,
 		struct mdss_panel_timing *timing)
 {
@@ -2771,6 +2823,7 @@ int mdss_dsi_panel_timing_switch(struct mdss_dsi_ctrl_pdata *ctrl,
 #endif
 #if defined(CONFIG_LGE_DISPLAY_LUCYE_COMMON)
 	ctrl->display_on_cmds= pt->display_on_cmds;
+	ctrl->display_on_and_aod_comds = pt->display_on_and_aod_comds;
 	ctrl->reg_55h_cmds = pt->reg_55h_cmds;
 	ctrl->reg_f0h_cmds = pt->reg_f0h_cmds;
 	ctrl->reg_f2h_cmds = pt->reg_f2h_cmds;
@@ -2945,6 +2998,9 @@ static int  mdss_dsi_panel_config_res_properties(struct device_node *np,
 #if defined(CONFIG_LGE_DISPLAY_LUCYE_COMMON)
 	mdss_dsi_parse_dcs_cmds(np, &pt->display_on_cmds,
 		"qcom,mdss-display-on-command",
+		"qcom,mdss-dsi-on-command-state");
+	mdss_dsi_parse_dcs_cmds(np, &pt->display_on_and_aod_comds,
+		"lge,mode-change-cmds-u0-to-u2",
 		"qcom,mdss-dsi-on-command-state");
 	mdss_dsi_parse_dcs_cmds(np, &pt->reg_55h_cmds,
 		"lge,mdss-dsi-55h-command",
@@ -3226,6 +3282,9 @@ static int mdss_panel_parse_dt(struct device_node *np,
 		"qcom,mdss-dsi-lane-3-state");
 
 	rc = mdss_panel_parse_display_timings(np, &ctrl_pdata->panel_data);
+	if (rc)
+		return rc;
+	rc = mdss_dsi_parse_hdr_settings(np, pinfo);
 	if (rc)
 		return rc;
 

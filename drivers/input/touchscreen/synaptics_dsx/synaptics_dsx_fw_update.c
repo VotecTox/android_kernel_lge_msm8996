@@ -22,7 +22,6 @@
 #include <linux/interrupt.h>
 #include <linux/delay.h>
 #include <linux/input.h>
-#include <linux/mutex.h>
 #include <linux/firmware.h>
 #include <linux/platform_device.h>
 #include <linux/input/synaptics_dsx_v2.h>
@@ -359,7 +358,7 @@ static struct device_attribute attrs[] = {
 static struct synaptics_rmi4_fwu_handle *fwu;
 
 DECLARE_COMPLETION(fwu_dsx_remove_complete);
-DEFINE_MUTEX(fwu_sysfs_mutex);
+DEFINE_MUTEX(dsx_fwu_sysfs_mutex);
 
 static unsigned int extract_uint_le(const unsigned char *ptr)
 {
@@ -1590,11 +1589,12 @@ static ssize_t fwu_sysfs_show_image(struct file *data_file,
 		struct kobject *kobj, struct bin_attribute *attributes,
 		char *buf, loff_t pos, size_t count)
 {
-	ssize_t retval;
 	struct synaptics_rmi4_data *rmi4_data = fwu->rmi4_data;
+	ssize_t retval;
 
-	if (!mutex_trylock(&fwu_sysfs_mutex))
-		return -EBUSY;	
+	if (!mutex_trylock(&dsx_fwu_sysfs_mutex))
+		return -EBUSY;
+
 	if (count < fwu->config_size) {
 		dev_err(rmi4_data->pdev->dev.parent,
 				"%s: Not enough space (%zu bytes) in buffer\n",
@@ -1604,41 +1604,46 @@ static ssize_t fwu_sysfs_show_image(struct file *data_file,
 	}
 
 	memcpy(buf, fwu->read_config_buf, fwu->config_size);
-
 	retval = fwu->config_size;
 show_image_exit:
-	mutex_unlock(&fwu_sysfs_mutex);
-	return retval;	
+	mutex_unlock(&dsx_fwu_sysfs_mutex);
+	return retval;
 }
 
 static ssize_t fwu_sysfs_store_image(struct file *data_file,
 		struct kobject *kobj, struct bin_attribute *attributes,
 		char *buf, loff_t pos, size_t count)
 {
-
 	ssize_t retval;
 
-	if (!mutex_trylock(&fwu_sysfs_mutex))
+	if (!mutex_trylock(&dsx_fwu_sysfs_mutex))
 		return -EBUSY;
 
 	if (count > (fwu->image_size - fwu->data_pos)) {
 		dev_err(fwu->rmi4_data->pdev->dev.parent,
 				"%s: Not enough space in buffer\n",
 				__func__);
-		retval = -EINVAL;		
-		goto store_image_exit;
-	}	
-	
+		retval = -EINVAL;
+		goto exit;
+	}
+
+	if (!fwu->ext_data_source) {
+		dev_err(fwu->rmi4_data->pdev->dev.parent,
+				"%s: Need to set imagesize\n",
+				__func__);
+		retval = -EINVAL;
+		goto exit;
+	}
+
 	memcpy((void *)(&fwu->ext_data_source[fwu->data_pos]),
 			(const void *)buf,
 			count);
 
 	fwu->data_pos += count;
-	retval = count;
-	
-store_image_exit:
-	mutex_unlock(&fwu_sysfs_mutex);
-	return retval;
+
+exit:
+	mutex_unlock(&dsx_fwu_sysfs_mutex);
+	return count;
 }
 
 static ssize_t fwu_sysfs_force_reflash_store(struct device *dev,
@@ -1648,19 +1653,17 @@ static ssize_t fwu_sysfs_force_reflash_store(struct device *dev,
 	unsigned int input;
 	struct synaptics_rmi4_data *rmi4_data = fwu->rmi4_data;
 
-
-	if (!mutex_trylock(&fwu_sysfs_mutex))
+	if (!mutex_trylock(&dsx_fwu_sysfs_mutex))
 		return -EBUSY;
-
 
 	if (sscanf(buf, "%u", &input) != 1) {
 		retval = -EINVAL;
-		goto force_reflash_store_exit;
+		goto exit;
 	}
 
 	if (input != 1) {
 		retval = -EINVAL;
-		goto force_reflash_store_exit;
+		goto exit;
 	}
 
 	if (LOCKDOWN)
@@ -1672,32 +1675,34 @@ static ssize_t fwu_sysfs_force_reflash_store(struct device *dev,
 		dev_err(rmi4_data->pdev->dev.parent,
 				"%s: Failed to do reflash\n",
 				__func__);
-		goto force_reflash_store_free_exit;
+		goto exit;
 	}
 
 	retval = count;
-force_reflash_store_exit:
+exit:
 	kfree(fwu->ext_data_source);
 	fwu->ext_data_source = NULL;
 	fwu->force_update = FORCE_UPDATE;
 	fwu->do_lockdown = DO_LOCKDOWN;
-force_reflash_store_free_exit:
-	mutex_unlock(&fwu_sysfs_mutex);	
+	fwu->data_pos = 0;
+	fwu->image_size = 0;
+	mutex_unlock(&dsx_fwu_sysfs_mutex);
 	return retval;
 }
 
 static ssize_t fwu_sysfs_do_reflash_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
-	ssize_t retval;
+	int retval;
 	unsigned int input;
 	struct synaptics_rmi4_data *rmi4_data = fwu->rmi4_data;
 
-	if (!mutex_trylock(&fwu_sysfs_mutex))
-		return -EBUSY;	
+	if (!mutex_trylock(&dsx_fwu_sysfs_mutex))
+		return -EBUSY;
+
 	if (sscanf(buf, "%u", &input) != 1) {
 		retval = -EINVAL;
-		goto reflash_store_exit;
+		goto exit;
 	}
 
 	if (input & LOCKDOWN) {
@@ -1707,7 +1712,7 @@ static ssize_t fwu_sysfs_do_reflash_store(struct device *dev,
 
 	if ((input != NORMAL) && (input != FORCE)) {
 		retval = -EINVAL;
-		goto reflash_store_exit;
+		goto exit;
 	}
 
 	if (input == FORCE)
@@ -1718,39 +1723,40 @@ static ssize_t fwu_sysfs_do_reflash_store(struct device *dev,
 		dev_err(rmi4_data->pdev->dev.parent,
 				"%s: Failed to do reflash\n",
 				__func__);
-		goto reflash_store_free_exit;
+		goto exit;
 	}
 
 	retval = count;
 
-reflash_store_free_exit:
+exit:
 	kfree(fwu->ext_data_source);
 	fwu->ext_data_source = NULL;
 	fwu->force_update = FORCE_UPDATE;
 	fwu->do_lockdown = DO_LOCKDOWN;
-reflash_store_exit:
-	mutex_unlock(&fwu_sysfs_mutex);
- 	return retval;
+	fwu->data_pos = 0;
+	fwu->image_size = 0;
+	mutex_unlock(&dsx_fwu_sysfs_mutex);
+	return retval;
 }
 
 static ssize_t fwu_sysfs_write_config_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
-	ssize_t retval;
+	int retval;
 	unsigned int input;
 	struct synaptics_rmi4_data *rmi4_data = fwu->rmi4_data;
 
-	if (!mutex_trylock(&fwu_sysfs_mutex))
-		return -EBUSY;	
-	
+	if (!mutex_trylock(&dsx_fwu_sysfs_mutex))
+		return -EBUSY;
+
 	if (sscanf(buf, "%u", &input) != 1) {
 		retval = -EINVAL;
-		goto write_config_store_exit;
+		goto exit;
 	}
 
 	if (input != 1) {
 		retval = -EINVAL;
-		goto write_config_store_exit;
+		goto exit;
 	}
 
 	retval = fwu_start_write_config();
@@ -1758,23 +1764,24 @@ static ssize_t fwu_sysfs_write_config_store(struct device *dev,
 		dev_err(rmi4_data->pdev->dev.parent,
 				"%s: Failed to write config\n",
 				__func__);
-		goto write_config_store_free_exit;
+		goto exit;
 	}
 
 	retval = count;
 
-write_config_store_free_exit:
+exit:
 	kfree(fwu->ext_data_source);
 	fwu->ext_data_source = NULL;
-write_config_store_exit:
-	mutex_unlock(&fwu_sysfs_mutex);
+	fwu->data_pos = 0;
+	fwu->image_size = 0;
+	mutex_unlock(&dsx_fwu_sysfs_mutex);
 	return retval;
 }
 
 static ssize_t fwu_sysfs_read_config_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
-	ssize_t retval;
+	int retval;
 	unsigned int input;
 	struct synaptics_rmi4_data *rmi4_data = fwu->rmi4_data;
 
@@ -1784,12 +1791,11 @@ static ssize_t fwu_sysfs_read_config_store(struct device *dev,
 	if (input != 1)
 		return -EINVAL;
 
-	if (!mutex_trylock(&fwu_sysfs_mutex))
+	if (!mutex_trylock(&dsx_fwu_sysfs_mutex))
 		return -EBUSY;
-	
 	retval = fwu_do_read_config();
-	mutex_unlock(&fwu_sysfs_mutex);
-	
+	mutex_unlock(&dsx_fwu_sysfs_mutex);
+
 	if (retval < 0) {
 		dev_err(rmi4_data->pdev->dev.parent,
 				"%s: Failed to read config\n",
@@ -1810,10 +1816,10 @@ static ssize_t fwu_sysfs_config_area_store(struct device *dev,
 	if (retval)
 		return retval;
 
-	if (!mutex_trylock(&fwu_sysfs_mutex))
+	if (!mutex_trylock(&dsx_fwu_sysfs_mutex))
 		return -EBUSY;
- 	fwu->config_area = config_area;
-	mutex_unlock(&fwu_sysfs_mutex);
+	fwu->config_area = config_area;
+	mutex_unlock(&dsx_fwu_sysfs_mutex);
 
 	return count;
 }
@@ -1821,17 +1827,30 @@ static ssize_t fwu_sysfs_config_area_store(struct device *dev,
 static ssize_t fwu_sysfs_image_name_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
+	ssize_t retval;
+
+	if (!mutex_trylock(&dsx_fwu_sysfs_mutex))
+		return -EBUSY;
 	if (strnlen(fwu->rmi4_data->fw_name, SYNA_FW_NAME_MAX_LEN) > 0)
-		return snprintf(buf, PAGE_SIZE, "%s\n",
+		retval = snprintf(buf, PAGE_SIZE, "%s\n",
 					fwu->rmi4_data->fw_name);
 	else
-		return snprintf(buf, PAGE_SIZE, "No firmware name given\n");
+		retval = snprintf(buf, PAGE_SIZE, "No firmware name given\n");
+	mutex_unlock(&dsx_fwu_sysfs_mutex);
+	return retval;
 }
 
 static ssize_t fwu_sysfs_image_name_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
-	if (sscanf(buf, "%s", fwu->image_name) != 1)
+	ssize_t retval;
+
+	if (!mutex_trylock(&dsx_fwu_sysfs_mutex))
+		return -EBUSY;
+	retval = sscanf(buf, "%49s", fwu->image_name);
+	mutex_unlock(&dsx_fwu_sysfs_mutex);
+
+	if (retval != 1)
 		return -EINVAL;
 
 	return count;
@@ -1840,17 +1859,17 @@ static ssize_t fwu_sysfs_image_name_store(struct device *dev,
 static ssize_t fwu_sysfs_image_size_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
-	ssize_t retval;
+	int retval;
 	unsigned long size;
 	struct synaptics_rmi4_data *rmi4_data = fwu->rmi4_data;
 
+	if (!mutex_trylock(&dsx_fwu_sysfs_mutex))
+		return -EBUSY;
+
 	retval = sstrtoul(buf, 10, &size);
 	if (retval)
-		return retval;
+		goto exit;
 
-	if (!mutex_trylock(&fwu_sysfs_mutex))
-		return -EBUSY;	
-	
 	fwu->image_size = size;
 	fwu->data_pos = 0;
 
@@ -1861,11 +1880,12 @@ static ssize_t fwu_sysfs_image_size_store(struct device *dev,
 				"%s: Failed to alloc mem for image data\n",
 				__func__);
 		retval = -ENOMEM;
-	} else {
-		retval = count;
+		goto exit;
 	}
 
-	mutex_unlock(&fwu_sysfs_mutex);
+	retval = count;
+exit:
+	mutex_unlock(&dsx_fwu_sysfs_mutex);
 	return retval;
 }
 

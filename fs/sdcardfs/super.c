@@ -19,6 +19,7 @@
  */
 
 #include "sdcardfs.h"
+#include <linux/syscalls.h>
 
 /*
  * The inode cache is used with alloc_inode for both our inode info and the
@@ -189,8 +190,8 @@ long sdcardfs_propagate_unlink(struct inode *parent, char* pathname) {
 	mm_segment_t old_fs;
 
 	sbi = SDCARDFS_SB(parent->i_sb);
-	propagate_path = kmalloc(PATH_MAX, GFP_KERNEL);
 	OVERRIDE_ROOT_CRED(saved_cred);
+	propagate_path = kmalloc(PATH_MAX, GFP_KERNEL);
 	old_fs = get_fs();
 	set_fs(KERNEL_DS);
 	if (sbi->options.type != TYPE_NONE && sbi->options.type != TYPE_DEFAULT) {
@@ -219,6 +220,59 @@ long sdcardfs_propagate_unlink(struct inode *parent, char* pathname) {
 	set_fs(old_fs);
 	REVERT_CRED(saved_cred);
 	kfree(propagate_path);
+	return ret;
+}
+
+long sdcardfs_propagate_rename(struct inode *parent, char * oldname, char * newname) {
+	long ret = 0;
+	char *propagate_old_path = NULL;
+	char *propagete_new_path = NULL;
+	struct sdcardfs_sb_info *sbi;
+	const struct cred *saved_cred = NULL;
+	/* old_fs is just temporary code to avoid the problem with memory address */
+	mm_segment_t old_fs;
+
+	sbi = SDCARDFS_SB(parent->i_sb);
+	OVERRIDE_ROOT_CRED(saved_cred);
+	propagate_old_path = kmalloc(PATH_MAX, GFP_KERNEL);
+	propagete_new_path = kmalloc(PATH_MAX, GFP_KERNEL);
+	old_fs = get_fs();
+	set_fs(KERNEL_DS);
+	if (sbi->options.type != TYPE_NONE && sbi->options.type != TYPE_DEFAULT) {
+		snprintf(propagate_old_path, PATH_MAX, "/mnt/runtime/default/%s%s",
+				sbi->options.label, oldname);
+		snprintf(propagete_new_path, PATH_MAX, "/mnt/runtime/default/%s%s",
+				sbi->options.label, newname);
+		ret = sys_renameat2(AT_FDCWD, propagate_old_path, AT_FDCWD, propagete_new_path, RENAME_NOPROPAGATE);
+	}
+
+	if (sbi->options.type != TYPE_NONE && sbi->options.type != TYPE_READ) {
+		snprintf(propagate_old_path, PATH_MAX, "/mnt/runtime/read/%s%s",
+				sbi->options.label, oldname);
+		snprintf(propagete_new_path, PATH_MAX, "/mnt/runtime/read/%s%s",
+				sbi->options.label, newname);
+		ret = sys_renameat2(AT_FDCWD, propagate_old_path, AT_FDCWD, propagete_new_path, RENAME_NOPROPAGATE);
+	}
+
+	if (sbi->options.type != TYPE_NONE && sbi->options.type != TYPE_WRITE) {
+		snprintf(propagate_old_path, PATH_MAX, "/mnt/runtime/write/%s%s",
+				sbi->options.label, oldname);
+		snprintf(propagete_new_path, PATH_MAX, "/mnt/runtime/write/%s%s",
+				sbi->options.label, newname);
+		ret = sys_renameat2(AT_FDCWD, propagate_old_path, AT_FDCWD, propagete_new_path, RENAME_NOPROPAGATE);
+	}
+
+	if (sbi->options.type != TYPE_NONE) {
+		snprintf(propagate_old_path, PATH_MAX, "/storage/%s%s",
+				sbi->options.label, oldname);
+		snprintf(propagete_new_path, PATH_MAX, "/storage/%s%s",
+				sbi->options.label, newname);
+		ret = sys_renameat2(AT_FDCWD, propagate_old_path, AT_FDCWD, propagete_new_path, RENAME_NOPROPAGATE);
+	}
+	set_fs(old_fs);
+	REVERT_CRED(saved_cred);
+	kfree(propagate_old_path);
+	kfree(propagete_new_path);
 	return ret;
 }
 
@@ -283,5 +337,6 @@ const struct super_operations sdcardfs_sops = {
 	.drop_inode	= generic_delete_inode,
 #ifdef CONFIG_SDCARD_FS
 	.unlink_callback = sdcardfs_propagate_unlink,
+	.rename_callback = sdcardfs_propagate_rename,
 #endif
 };

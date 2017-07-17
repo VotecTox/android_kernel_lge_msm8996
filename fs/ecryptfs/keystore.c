@@ -2093,9 +2093,18 @@ found_matching_auth_tok:
 			rc = -EINVAL;
 			goto out_wipe_list;
 		}
-
-		crypto_hash_setkey(desc.tfm, candidate_auth_tok->token.password.session_key_encryption_key, crypt_stat->key_size);
-
+#ifdef CONFIG_SDP
+        if (crypt_stat->flags & ECRYPTFS_SDP_ENABLED) {
+            printk(KERN_INFO "crypto_hash_setkey for SDP\n");
+            crypto_hash_setkey(desc.tfm, candidate_auth_tok->token.private_key.signature, crypt_stat->key_size);
+        } else {
+            printk(KERN_INFO "crypto_hash_setkey for non-SDP\n");
+            crypto_hash_setkey(desc.tfm, candidate_auth_tok->token.password.session_key_encryption_key, crypt_stat->key_size);
+        }
+#else
+        printk(KERN_INFO "crypto_hash_setkey for non-SDP\n");
+        crypto_hash_setkey(desc.tfm, candidate_auth_tok->token.password.session_key_encryption_key, crypt_stat->key_size);
+#endif // CONFIG_SDP
 		rc = crypto_hash_init(&desc);
 		if (rc) {
 			printk(KERN_INFO "failed at crypto_hash_init\n");
@@ -2748,9 +2757,18 @@ ecryptfs_generate_key_packet_set(char *dest_base,
 					PTR_ERR(desc.tfm));
 					goto out_free;
 				}
-
-				crypto_hash_setkey(desc.tfm, auth_tok->token.password.session_key_encryption_key, crypt_stat->key_size);
-
+#ifdef CONFIG_SDP
+                if (crypt_stat->flags & ECRYPTFS_SDP_ENABLED) {
+                    printk(KERN_INFO "crypto_hash_setkey for SDP\n");
+                    crypto_hash_setkey(desc.tfm, auth_tok->token.private_key.signature, crypt_stat->key_size);
+                } else {
+                    printk(KERN_INFO "crypto_hash_setkey for non-SDP\n");
+                    crypto_hash_setkey(desc.tfm, auth_tok->token.password.session_key_encryption_key, crypt_stat->key_size);
+                }
+#else
+                printk(KERN_INFO "crypto_hash_setkey for non-SDP\n");
+                crypto_hash_setkey(desc.tfm, auth_tok->token.password.session_key_encryption_key, crypt_stat->key_size);
+#endif // CONFIG_SDP
 				err = crypto_hash_init(&desc);
 				if (err) {
 					printk(KERN_INFO "failed at crypto_hash_init\n");

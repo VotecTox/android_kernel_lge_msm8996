@@ -520,7 +520,7 @@ int fmc_send_cmd(struct fmdrv_ops *fmdev, unsigned char fmreg_index,
     int ret;
 
     //V4L2_FM_DRV_DBG("In fmc_send_cmd");
-
+    mutex_lock(&fmdev->wait_completion_lock);
     init_completion(wait_completion);
     if(type == VSC_HCI_CMD)
     {
@@ -538,6 +538,7 @@ int fmc_send_cmd(struct fmdrv_ops *fmdev, unsigned char fmreg_index,
     }
 
     timeleft = wait_for_completion_timeout(wait_completion, FM_DRV_TX_TIMEOUT);
+    mutex_unlock(&fmdev->wait_completion_lock);
     if (!timeleft)
     {
         pr_err("(fmdrv): Timeout(%d sec),didn't get reg"
@@ -1492,7 +1493,8 @@ int fmc_prepare(struct fmdrv_ops *fmdev)
     }
 
     spin_lock_init(&fmdev->resp_skb_lock);
-
+    spin_lock_init(&fmdev->rds_cbuff_lock);
+    mutex_init(&fmdev->wait_completion_lock);
     /* Initialize TX queue and TX tasklet */
     skb_queue_head_init(&fmdev->tx_q);
     /* Initialize RX Queue and RX tasklet */

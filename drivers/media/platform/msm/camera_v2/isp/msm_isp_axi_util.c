@@ -820,13 +820,9 @@ void msm_isp_increment_frame_id(struct vfe_device *vfe_dev,
 	struct msm_vfe_sof_info *sof_info = NULL;
 	enum msm_vfe_dual_hw_type dual_hw_type;
 	enum msm_vfe_dual_hw_ms_type ms_type;
-    /* LGE_CHANGE_S, Fix issue that frame ID is reversed using dual camera, 2016-11-26, hyungtae.lee@lge.com */
-    #if 0
 	struct msm_vfe_sof_info *master_sof_info = NULL;
 	int32_t time, master_time, delta;
-	//uint32_t sof_incr = 0;
-    #endif
-    /* LGE_CHANGE_E, Fix issue that frame ID is reversed using dual camera, 2016-11-26, hyungtae.lee@lge.com */
+	uint32_t sof_incr = 0;
 	unsigned long flags;
 
 	if (vfe_dev->axi_data.src_info[frame_src].frame_id == 0)
@@ -853,9 +849,6 @@ void msm_isp_increment_frame_id(struct vfe_device *vfe_dev,
 		(ms_type == MS_TYPE_SLAVE) &&
 		(vfe_dev->common_data->ms_resource.master_active == 1)) {
 		/* DUAL_HW_MS_SLAVE  && MASTER active */
-
-        /* LGE_CHANGE_S, Fix issue that frame ID is reversed using dual camera, 2016-11-26, hyungtae.lee@lge.com */
-        #if 0 // QCT original
 		time = ts->buf_time.tv_sec * 1000 +
 			ts->buf_time.tv_usec / 1000;
 		master_sof_info = &vfe_dev->common_data->ms_resource.
@@ -877,13 +870,6 @@ void msm_isp_increment_frame_id(struct vfe_device *vfe_dev,
 		 */
 		vfe_dev->axi_data.src_info[frame_src].frame_id =
 			master_sof_info->frame_id + sof_incr;
-        #else
-        /* In case that HW sync is not used*/
-        /* Need to increase frame id of slave unconditionally
-            because it happens that slave frames comes continuously without master frames */
-        vfe_dev->axi_data.src_info[frame_src].frame_id++;
-        #endif
-        /* LGE_CHANGE_E, Fix issue that frame ID is reversed using dual camera, 2016-11-26, hyungtae.lee@lge.com */
 	} else {
 		if (frame_src == VFE_PIX_0) {
 			vfe_dev->axi_data.src_info[frame_src].frame_id +=
@@ -937,6 +923,13 @@ void msm_isp_notify(struct vfe_device *vfe_dev, uint32_t event_type,
 	enum msm_vfe_dual_hw_ms_type ms_type;
 	int i, j;
 	unsigned long flags;
+
+/* LGE_CHANGE_S, STATIC_ANALYSYS_DEV */
+	if (frame_src >= VFE_SRC_MAX) {
+		pr_err("%s: frame_src value is error = %d\n", __func__,	frame_src);
+		return;
+	}
+/* LGE_CHANGE_E, STATIC_ANALYSYS_DEV */
 
 	memset(&event_data, 0, sizeof(event_data));
 
@@ -1671,7 +1664,7 @@ static struct msm_isp_buffer *msm_isp_get_stream_buffer(
 			__func__);
 			return buf;
 		}
-        buf_index = queue_req->buf_index;
+		buf_index = queue_req->buf_index;
 		queue_req->cmd_used = 0;
 		list_del(&queue_req->list);
 		temp_stream_info->request_q_cnt--;

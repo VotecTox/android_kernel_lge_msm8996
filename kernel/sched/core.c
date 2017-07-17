@@ -96,6 +96,10 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/sched.h>
 
+#ifdef CONFIG_DEBUG_PREEMPT
+#include <asm/cacheflush.h>
+#endif
+
 const char *task_event_names[] = {"PUT_PREV_TASK", "PICK_NEXT_TASK",
 				  "TASK_WAKE", "TASK_MIGRATE", "TASK_UPDATE",
 				"IRQ_UPDATE"};
@@ -6095,12 +6099,16 @@ notrace unsigned long get_parent_ip(unsigned long addr)
 void preempt_count_add(int val)
 {
 #ifdef CONFIG_DEBUG_PREEMPT
+	int *pt = preempt_count_ptr();
 	/*
 	 * Underflow?
 	 */
 	if (preempt_count() < 0) {
-		printk(KERN_ERR "%s: %d < 0\n",
+		trace_printk(KERN_ERR "%s: %d < 0\n",
 				__func__, preempt_count());
+		__dma_flush_range((void *)&pt, (void *)&pt + (sizeof(int)));
+		trace_printk(KERN_ERR "%s: after flush %d %d \n",
+				__func__,*pt , preempt_count());
 		DEBUG_LOCKS_WARN_ON(1);
 		return;
 	}
@@ -6127,12 +6135,16 @@ NOKPROBE_SYMBOL(preempt_count_add);
 void preempt_count_sub(int val)
 {
 #ifdef CONFIG_DEBUG_PREEMPT
+	int *pt = preempt_count_ptr();
 	/*
 	 * Underflow?
 	 */
 	if (val > preempt_count()) {
-		printk(KERN_ERR "%s: %d > %d\n",
+		trace_printk(KERN_ERR "%s: %d > %d\n",
 				__func__, val, preempt_count());
+		__dma_flush_range((void *)&pt, (void *)&pt + (sizeof(int)));
+		trace_printk(KERN_ERR "%s: after flush %d %d \n",
+				__func__,*pt, preempt_count());
 		DEBUG_LOCKS_WARN_ON(1);
 		return;
 	}

@@ -1630,6 +1630,7 @@ struct super_operations {
 	long (*free_cached_objects)(struct super_block *, long, int);
 #ifdef CONFIG_SDCARD_FS
 	long (*unlink_callback)(struct inode *, char *);
+	long (*rename_callback)(struct inode *, char *, char *);
 #endif
 };
 
