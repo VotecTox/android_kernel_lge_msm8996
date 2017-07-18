@@ -3045,7 +3045,6 @@ notrace unsigned long get_parent_ip(unsigned long addr)
 void preempt_count_add(int val)
 {
 #ifdef CONFIG_DEBUG_PREEMPT
-	int *pt = preempt_count_ptr();
 	/*
 	 * Underflow?
 	 */
@@ -3074,7 +3073,6 @@ NOKPROBE_SYMBOL(preempt_count_add);
 void preempt_count_sub(int val)
 {
 #ifdef CONFIG_DEBUG_PREEMPT
-	int *pt = preempt_count_ptr();
 	/*
 	 * Underflow?
 	 */
