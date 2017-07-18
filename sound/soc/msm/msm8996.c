@@ -3855,7 +3855,6 @@ static struct snd_soc_dai_link msm8996_lge_dai_links[] = {
 	},
 #endif	/* CONFIG_SND_LGE_DSDP_DUAL_AUDIO */
 #ifdef CONFIG_SND_USE_SEC_MI2S
-static struct snd_soc_dai_link msm8996_sec_mi2s_dai_link[] = {
 	{
 		.name = LPASS_BE_SEC_MI2S_RX,
 		.stream_name = "Secondary MI2S Playback",
@@ -3870,7 +3869,6 @@ static struct snd_soc_dai_link msm8996_sec_mi2s_dai_link[] = {
 		.ops = &msm8996_sec_mi2s_be_ops,
 		.ignore_suspend = 1,
 	},
-};
 #endif
 #ifdef CONFIG_SND_USE_TERT_MI2S
 	{
