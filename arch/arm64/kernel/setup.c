@@ -65,6 +65,9 @@
 #include <asm/xen/hypervisor.h>
 #include <asm/mmu_context.h>
 
+unsigned int system_rev;
+EXPORT_SYMBOL(system_rev);
+
 unsigned int boot_reason;
 EXPORT_SYMBOL(boot_reason);
 
