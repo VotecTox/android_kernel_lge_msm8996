@@ -241,7 +241,6 @@ static int lgcc_vote_fcc_get(void)
 	return lgcc_vote_fcc_table[lgcc_vote_fcc_reason];
 }
 
-#ifdef CONFIG_LGE_PM_LGE_POWER_CLASS_TYPE_HVDCP
 static int check_hvdcp_type(struct lge_charging_controller *cc) {
 	union lge_power_propval lge_val = {0,};
 	int rc;
@@ -258,7 +257,6 @@ static int check_hvdcp_type(struct lge_charging_controller *cc) {
 
 	return 0;
 }
-#endif
 
 static int lgcc_thermal_mitigation;
 static int lgcc_set_thermal_chg_current(const char *val,
@@ -277,9 +275,7 @@ static int lgcc_set_thermal_chg_current(const char *val,
 		return 0;
 	}
 
-#ifdef CONFIG_LGE_PM_LGE_POWER_CLASS_TYPE_HVDCP
 	the_cc->is_hvdcp_present = check_hvdcp_type(the_cc);
-#endif
 
 	if (lgcc_thermal_mitigation > 0 && lgcc_thermal_mitigation < 1500) {
 		the_cc->chg_current_te = lgcc_thermal_mitigation;
@@ -719,7 +715,6 @@ static void lge_monitor_batt_temp_work(struct work_struct *work){
 	} else if (cc->chg_current_te == cc->chg_current_max)
 		lgcc_vote_fcc(LGCC_REASON_THERMAL, -EINVAL);
 
-#ifdef CONFIG_LGE_PM_LGE_POWER_CLASS_TYPE_HVDCP
 	if (cc->quick_chg_status == 1)
 		lgcc_vote_fcc(LGCC_REASON_LCD, RESTRICTED_LCD_STATE);
 	else if (cc->quick_chg_status == 3)
@@ -728,7 +723,6 @@ static void lge_monitor_batt_temp_work(struct work_struct *work){
 		lgcc_vote_fcc(LGCC_REASON_LCD, -EINVAL);
 		lgcc_vote_fcc(LGCC_REASON_CALL, -EINVAL);
 	}
-#endif
 #ifdef CONFIG_LGE_PM_LGE_POWER_CLASS_TDMB_MODE
 	if (cc->tdmb_mode_on == 1)
 		lgcc_vote_fcc(LGCC_REASON_TDMB, RESTRICTED_CHG_CURRENT_500);
@@ -781,12 +775,8 @@ static void lge_monitor_batt_temp_work(struct work_struct *work){
 	cc->batt_psy->get_property(cc->batt_psy,
 			POWER_SUPPLY_PROP_CAPACITY, &ret);
 #ifndef CONFIG_LGE_PM_LGE_POWER_CLASS_CHARGER_SLEEP
-#ifdef CONFIG_LGE_PM_LGE_POWER_CLASS_TYPE_HVDCP
 	pr_debug("cap : %d, hvdcp : %d, usb : %d\n",
 			ret.intval, cc->is_hvdcp_present, cc->is_usb_present);
-#else
-	pr_debug("cap : %d, usb : %d\n", ret.intval, cc->is_usb_present);
-#endif
 
 	if (!cc->is_usb_present ||
 			(cc->is_usb_present && cc->chg_done)) {
@@ -968,10 +958,8 @@ static int lge_power_lge_cc_set_property(struct lge_power *lpc,
 		case LGE_POWER_PROP_CHARGE_DONE:
 			cc->chg_done = val->intval;
 			if (cc->chg_done) {
-#ifdef CONFIG_LGE_PM_LGE_POWER_CLASS_TYPE_HVDCP
 				if (delayed_work_pending(&cc->hvdcp_set_cur_work))
 					cancel_delayed_work_sync(&cc->hvdcp_set_cur_work);
-#endif
 #ifdef CONFIG_LGE_USB_TYPE_C
 				if (delayed_work_pending(&cc->ctype_detect_work))
 					cancel_delayed_work_sync(&cc->ctype_detect_work);
@@ -1113,10 +1101,8 @@ static void lge_check_typec_work(struct work_struct *work) {
 		pr_err("Not type-C\n");
 	} else {
 		cc->ctype_present = 1;
-#ifdef CONFIG_LGE_PM_LGE_POWER_CLASS_TYPE_HVDCP
 		if (delayed_work_pending(&cc->hvdcp_set_cur_work))
 			cancel_delayed_work_sync(&cc->hvdcp_set_cur_work);
-#endif
 		pr_info("Detect c-type cable\n");
 		cc->otp_ibat_current = cc->ibat_current;
 		lgcc_vote_fcc(LGCC_REASON_CTYPE, cc->ibat_current);
@@ -1146,10 +1132,8 @@ skip_ctype:
 
 		cc->finish_check_ctype = 1;
 		cc->ctype_present = 1;
-#ifdef CONFIG_LGE_PM_LGE_POWER_CLASS_TYPE_HVDCP
 		if (delayed_work_pending(&cc->hvdcp_set_cur_work))
 			cancel_delayed_work_sync(&cc->hvdcp_set_cur_work);
-#endif
 	}
 
 	if (cc->ctype_present && cc->finish_check_ctype) {
@@ -1337,10 +1321,8 @@ skip_setting:
 	    && !cc->ctype_present
 #endif
 	    && !taper_charging)
-#ifdef CONFIG_LGE_PM_LGE_POWER_CLASS_TYPE_HVDCP
 		schedule_delayed_work(&cc->hvdcp_set_cur_work,
 				HVDCP_SET_CUR_DELAY);
-#endif
 #endif
 }
 #endif
@@ -1359,6 +1341,7 @@ static void lge_cc_external_lge_power_changed(struct lge_power *lpc) {
 		= container_of(lpc, struct lge_charging_controller,
 				lge_cc_lpc);
 	int ibat = 0;
+	int i;
 
 	cc->lge_cd_lpc = lge_power_get_by_name("lge_cable_detect");
 	if(!cc->lge_cd_lpc){
@@ -1442,14 +1425,12 @@ static void lge_cc_external_lge_power_changed(struct lge_power *lpc) {
 				cc->finish_check_ctype = 0;
 				schedule_delayed_work(&cc->ctype_detect_work, 0);
 #endif
-#ifdef CONFIG_LGE_PM_LGE_POWER_CLASS_TYPE_HVDCP
 				schedule_delayed_work(&cc->hvdcp_set_cur_work, 0);
-				for (int i = 1; i < LGCC_REASON_MAX; i++) {
+				for (i = 1; i < LGCC_REASON_MAX; i++) {
 					/* Do not clear voting values from thermal_engine */
 					if (i != LGCC_REASON_THERMAL && i != LGCC_REASON_THERMAL_HVDCP)
 						lgcc_vote_fcc(i, -EINVAL);
 				}
-#endif
 			} else {
 				if (ibat <= 0)
 					ibat = 500 * 1000;
