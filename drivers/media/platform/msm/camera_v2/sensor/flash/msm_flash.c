@@ -268,16 +268,6 @@ static int32_t msm_flash_i2c_init(
 	flash_ctrl->power_info.power_down_setting_size =
 		flash_ctrl->power_setting_array.size_down;
 
-	if ((flash_ctrl->power_info.power_setting_size > MAX_POWER_CONFIG) ||
-	(flash_ctrl->power_info.power_down_setting_size > MAX_POWER_CONFIG)) {
-		pr_err("%s:%d invalid power setting size=%d size_down=%d\n",
-			__func__, __LINE__,
-			flash_ctrl->power_info.power_setting_size,
-			flash_ctrl->power_info.power_down_setting_size);
-		rc = -EINVAL;
-		goto msm_flash_i2c_init_fail;
-	}
-
 	rc = msm_camera_power_up(&flash_ctrl->power_info,
 		flash_ctrl->flash_device_type,
 		&flash_ctrl->flash_i2c_client);
@@ -392,10 +382,6 @@ static int32_t msm_flash_off(struct msm_flash_ctrl_t *flash_ctrl,
 		led_trigger_event(flash_ctrl->switch_trigger, 0);
 
 	CDBG("Exit\n");
-
-#ifdef CONFIG_MACH_LGE
-	pr_info("msm_flash_off done\n");
-#endif
 	return 0;
 }
 
@@ -531,9 +517,7 @@ static int32_t msm_flash_low(
 				pr_debug("LED current clamped to %d\n",
 					curr);
 			}
-#ifdef CONFIG_MACH_LGE
-			pr_info("low_flash_current[%d] = %d\n", i, curr);
-#endif
+			CDBG("low_flash_current[%d] = %d", i, curr);
 			led_trigger_event(flash_ctrl->torch_trigger[i],
 				curr);
 		}
@@ -570,9 +554,7 @@ static int32_t msm_flash_high(
 				pr_debug("LED flash_current[%d] clamped %d\n",
 					i, curr);
 			}
-#ifdef CONFIG_MACH_LGE
-			pr_info("high_flash_current[%d] = %d\n", i, curr);
-#endif
+			CDBG("high_flash_current[%d] = %d", i, curr);
 			led_trigger_event(flash_ctrl->flash_trigger[i],
 				curr);
 		}
@@ -940,6 +922,8 @@ static int32_t msm_flash_get_dt_data(struct device_node *of_node,
 		return rc;
 	}
 
+	if (fctrl->flash_driver_type == FLASH_DRIVER_DEFAULT)
+		fctrl->flash_driver_type = FLASH_DRIVER_GPIO;
 	CDBG("%s:%d fctrl->flash_driver_type = %d", __func__, __LINE__,
 		fctrl->flash_driver_type);
 
