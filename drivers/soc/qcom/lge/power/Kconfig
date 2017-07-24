@@ -1,0 +1,19 @@
+config LGE_PM_LGE_POWER_CORE
+	bool "Apply LGE Power Core"
+	default n
+	help
+	  Say Y here enable support lge power core
+
+config LGE_PM_LGE_POWER_CLASS_CHARGING_CONTROLLER
+	tristate "LGE charging controller driver for LG Power Class"
+	depends on LGE_PM_LGE_POWER_CORE
+	default n
+	help
+	  Say Y here enable support charging controller for LG Power Class
+
+config LGE_PM_LGE_POWER_CLASS_BATTERY_ID_CHECKER
+	tristate "Battery ID checker driver for LG Power Class"
+	depends on LGE_PM_LGE_POWER_CORE
+	default n
+	help
+	  Say Y here enable support battery id checker driver for LG Power Class

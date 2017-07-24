@@ -632,9 +632,31 @@ config MSM_BCL_PERIPHERAL_CTL
 	  provides routines to configure and monitor the BCL
 	  PMIC peripheral.
 
+config LGE_PM
+	tristate "MSM8996 LGE POWER Feature"
+	depends on SPMI || MSM_SPMI
+	help
+	  Say Y here to enable support for pm8994/pmi8994 chip lge feature.
+	  Power Management, Battery charging, Battery Monitoring System
+	  with battery FET and fuel gauge.
+
+config LGE_PM_SUPPORT_LG_POWER_CLASS
+	bool "LG power class driver feature"
+	depends on LGE_PM
+	default n
+	help
+	  Support lge power class for charging scenario on LGE
+
+config LGE_PM_SOC_RECHARGING_WA
+   bool "LGE_PM Support recharging by SOC"
+	 depends on LGE_PM
+   help
+     Say Y here to recharging by SOC
+
 source "drivers/power/reset/Kconfig"
 
 endif # POWER_SUPPLY
 
 source "drivers/power/avs/Kconfig"
 source "drivers/power/qcom/Kconfig"
+source "drivers/power/lge/Kconfig"

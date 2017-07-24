@@ -418,4 +418,13 @@ config LGE_HALL_IC
 	help
 	  Support sending a device-tree defined gpio code when hall IC is triggered
 
+config LGE_PM_CHARGING_SCENARIO
+	tristate "Support LGE PM Charging Scenario"
+	default n
+	depends on MACH_LGE
+	help
+	  LGE PM Charging Scenario
+
 endmenu
+
+source "drivers/soc/qcom/lge/power/Kconfig"
