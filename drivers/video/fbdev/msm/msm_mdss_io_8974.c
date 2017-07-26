@@ -1194,7 +1194,11 @@ static void mdss_dsi_8996_phy_config(struct mdss_dsi_ctrl_pdata *ctrl)
 		}
 
 		/* test str */
+#ifdef CONFIG_LGE_DISPLAY_BL_EXTENDED
+		MIPI_OUTP(base + DSIPHY_LANE_TEST_STR, 0xff);	/* fixed */
+#else
 		MIPI_OUTP(base + DSIPHY_LANE_TEST_STR, 0x88);	/* fixed */
+#endif
 
 		/* phy timing, 8 * MDSS_DSI_NUM_DATA_LANES */
 		cnt = DSIPHY_LANE_TIMING_CTRL_NUM;
