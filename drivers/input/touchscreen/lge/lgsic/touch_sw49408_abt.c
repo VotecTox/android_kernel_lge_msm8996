@@ -217,13 +217,14 @@ static int abt_ksocket_receive(unsigned char *buf, int len)
 	iov.iov_base = buf;
 	iov.iov_len = len;
 
+	msg.msg_flags = flag;
 	msg.msg_name = addr;
 	msg.msg_namelen  = sizeof(struct sockaddr_in);
 	msg.msg_control = NULL;
 	msg.msg_controllen = 0;
+	msg.msg_iov = &iov;
+	msg.msg_iovlen = 1;
 	msg.msg_control = NULL;
-
-	iov_iter_kvec(&msg.msg_iter, flag, &iov, 1, size);
 
 	oldfs = get_fs();
 	set_fs(KERNEL_DS);
@@ -433,18 +434,19 @@ static uint32_t abt_ksocket_send_exit(void)
 	iov.iov_base = &buf;
 	iov.iov_len = 1;
 
+	msg.msg_flags = 0;
 	msg.msg_name = &addr;
 	msg.msg_namelen  = sizeof(struct sockaddr_in);
 	msg.msg_control = NULL;
 	msg.msg_controllen = 0;
+	msg.msg_iov = &iov;
+	msg.msg_iovlen = 1;
 	msg.msg_control = NULL;
-
-	iov_iter_kvec(&msg.msg_iter, 0, &iov, 1, 0);
 
 	oldfs = get_fs();
 
 	set_fs(KERNEL_DS);
-	ret = sock_sendmsg(sock, &msg);
+	ret = sock_sendmsg(sock, &msg, 1);
 	TOUCH_I(": exit send message return : %d\n", ret);
 	set_fs(oldfs);
 	sock_release(sock);
@@ -468,18 +470,19 @@ static int abt_ksocket_send(struct socket *sock,
 	iov.iov_base = buf;
 	iov.iov_len = len;
 
+	msg.msg_flags = 0;
 	msg.msg_name = addr;
 	msg.msg_namelen  = sizeof(struct sockaddr_in);
 	msg.msg_control = NULL;
 	msg.msg_controllen = 0;
+	msg.msg_iov = &iov;
+	msg.msg_iovlen = 1;
 	msg.msg_control = NULL;
-
-	iov_iter_kvec(&msg.msg_iter, 0, &iov, 1, size);
 
 	oldfs = get_fs();
 
 	set_fs(KERNEL_DS);
-	size = sock_sendmsg(sock, &msg);
+	size = sock_sendmsg(sock, &msg, len);
 	set_fs(oldfs);
 
 	return size;
