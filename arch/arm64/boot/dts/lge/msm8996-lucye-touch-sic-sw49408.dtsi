@@ -1,0 +1,275 @@
+/* Copyright (c) 2014, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+&spi_12 {
+	status = "ok";
+  spi-max-frequency = <40000000>;
+
+  /* Assign runtime functions to pins */
+  qcom,use-pinctrl;
+  pinctrl-names = "spi_default","spi_sleep";
+  pinctrl-0 = <&spi_ts_active &spi_ts_cs_active>;
+  pinctrl-1 = <&spi_ts_suspend &spi_ts_cs_suspend>;
+
+  qcom,use-bam;
+  qcom,rt-priority;
+
+  sw49407 {
+    compatible = "lge,sw49407";
+    reg = <0>;
+    status = "ok";
+    interrupt-parent = <&tlmm>;
+    interrupts = <125 0x2008>;
+    irqflags = <0x00000002>;
+    spi-max-frequency = <40000000>;
+
+    pinctrl-names = "touch_pin_active", "touch_pin_sleep";
+    pinctrl-0 = <&ts_reset_active &ts_int_active>;
+    pinctrl-1 = <&ts_reset_suspend &ts_int_suspend>;
+
+    reset-gpio = <&tlmm 89 0x00>;
+    irq-gpio = <&tlmm 125 0x2008>;
+
+    /* Caps */
+    max_x = <1439>;
+    max_y = <2879>;
+    max_pressure = <0xff>;
+    max_width_major = <1439>;
+    max_width_minor = <2879>;
+    max_orientation = <90>;
+    max_id = <10>;
+    hw_reset_delay = <90>;
+    sw_reset_delay = <10>;
+
+    /* Role */
+    use_lpwg = <1>;
+    use_lpwg_test = <1>;
+    hide_coordinate = <0>;
+
+    /* Firmware */
+    fw_image = "touch/lucye/L1L57P1_8_23_SW49407_Lucy_VB.img",
+        "touch/lucye/L1L57P1_8_23_SW49407_Lucy_VB.img";
+
+    panel_spec = "touch/lucye/lucye_limit.txt";
+    panel_spec_mfts_folder = "touch/lucye/lucye_limit_mfts.txt";
+
+    /* ASC */
+    use_asc = <0>;
+    low_delta_thres = <350>;
+    high_delta_thres = <600>;
+    max_delta_cnt = <2>;
+  };
+
+  sw49408 {
+    compatible = "lge,sw49408";
+    reg = <1>;
+    status = "ok";
+    interrupt-parent = <&tlmm>;
+    interrupts = <125 0x2008>;
+    irqflags = <0x00000002>;
+    spi-max-frequency = <40000000>;
+
+    pinctrl-names = "touch_pin_active", "touch_pin_sleep";
+    pinctrl-0 = <&ts_reset_active &ts_int_active>;
+    pinctrl-1 = <&ts_reset_suspend &ts_int_suspend>;
+
+    reset-gpio = <&tlmm 89 0x00>;
+    irq-gpio = <&tlmm 125 0x2008>;
+
+    /* Caps */
+    max_x = <1439>;
+    max_y = <2879>;
+    max_pressure = <0xff>;
+    max_width_major = <1439>;
+    max_width_minor = <2879>;
+    max_orientation = <90>;
+    max_id = <10>;
+    hw_reset_delay = <90>;
+    sw_reset_delay = <10>;
+
+    /* Role */
+    use_lpwg = <1>;
+    use_lpwg_test = <1>;
+    hide_coordinate = <1>;
+
+    /* Firmware */
+    fw_image = "touch/lucye/L1L57P2_1_03.img",
+       "touch/lucye/L1L57P2_1_03.img";
+
+    panel_spec = "touch/lucye/lucye_limit.txt";
+    panel_spec_mfts_folder = "touch/lucye/lucye_limit_mfts.txt";
+
+    /* ASC */
+    use_asc = <0>;
+    low_delta_thres = <350>;
+    high_delta_thres = <600>;
+    max_delta_cnt = <2>;
+  };
+};
+
+&tlmm {
+  pmx_reset_ts {
+    reset_active_ts: reset_active_ts {
+      mux {
+        pins = "gpio89";
+        function = "gpio";
+      };
+      config {
+        pins = "gpio89";
+        drive-strength = <6>;
+        bias-pull-up;
+      };
+    };
+
+    reset_suspend_ts: reset_suspend_ts {
+      mux {
+        pins = "gpio89";
+        function = "gpio";
+      };
+      config {
+        pins = "gpio89";
+        drive-strength = <6>;
+        bias-pull-down;
+      };
+    };
+  };
+
+  pmx_int_ts {
+    int_active_ts: int_active_ts {
+      mux {
+        pins = "gpio125";
+        function = "gpio";
+      };
+      config {
+        pins = "gpio125";
+        drive-strength = <2>;
+        bias-disable;
+      };
+    };
+
+    int_suspend_ts: int_suspend_ts {
+      mux {
+        pins = "gpio125";
+        function = "gpio";
+      };
+      config {
+        pins = "gpio125";
+        drive-strength = <2>;
+        bias-disable;
+      };
+    };
+  };
+
+  pmx_ts_reset {
+    ts_reset_active: ts_reset_active {
+      mux {
+        pins = "gpio89";
+        function = "gpio";
+      };
+      config {
+        pins = "gpio89";
+        drive-strength = <6>;
+        bias-pull-up;
+      };
+    };
+
+    ts_reset_suspend: ts_reset_suspend {
+      mux {
+        pins = "gpio89";
+        function = "gpio";
+      };
+      config {
+        pins = "gpio89";
+        drive-strength = <6>;
+        bias-pull-down;
+      };
+    };
+  };
+
+  pmx_ts_int {
+    ts_int_active: ts_int_active {
+      mux {
+        pins = "gpio125";
+        function = "gpio";
+      };
+      config {
+        pins = "gpio125";
+        drive-strength = <2>;
+        bias-pull-up;
+      };
+    };
+
+    ts_int_suspend: ts_int_suspend {
+      mux {
+        pins = "gpio125";
+        function = "gpio";
+      };
+      config {
+        pins = "gpio125";
+        drive-strength = <2>;
+        bias-disable;
+      };
+    };
+  };
+
+  pmx_spi_ts: pmx_spi_ts {
+    spi_ts_active: spi_ts_active {
+    /* TOUCH MOSI, MISO */
+      mux {
+        pins = "gpio85", "gpio86";
+        function = "blsp_spi12";
+      };
+      config {
+        pins = "gpio85", "gpio86";
+        drive-strength = <8>; /* 8MA */
+        bias-pull-up;
+      };
+    };
+
+    spi_ts_suspend: spi_ts_suspend {
+    /* TOUCH MOSI, MISO */
+      mux {
+        pins = "gpio85", "gpio86";
+        function = "blsp_spi12";
+      };
+      config {
+        pins = "gpio85", "gpio86";
+        drive-strength = <2>; /* 2MA */
+        bias-disable; /* No PULL */
+      };
+    };
+
+    spi_ts_cs_active: spi_ts_cs_active {
+      mux {
+        pins = "gpio87", "gpio88";
+        function = "blsp_spi12";
+      };
+      config {
+        pins = "gpio87", "gpio88";
+        drive-strength = <8>;
+        bias-pull-up;
+      };
+    };
+
+    spi_ts_cs_suspend: spi_ts_cs_suspend {
+      mux {
+        pins = "gpio87", "gpio88";
+        function = "blsp_spi12";
+      };
+      config {
+        pins = "gpio87", "gpio88";
+        drive-strength = <2>;
+        bias-disable; /* No PULL */
+      };
+    };
+  };
+};
