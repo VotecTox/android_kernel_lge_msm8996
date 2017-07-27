@@ -2426,6 +2426,18 @@ set_roi:
 						ctl->mixer_right->height};
 			}
 		}
+		if (pinfo->partial_update_enabled == PU_DUAL_ROI) {
+			if (dual_roi->enabled) {
+				/* we failed pu validation, restore pipes */
+				list_for_each_entry(pipe,
+					&mdp5_data->pipes_used, list)
+				__restore_pipe(pipe);
+			}
+			dual_roi->enabled = false;
+		}
+
+		if (pinfo->partial_update_enabled)
+			__restore_dest_scaler_roi(ctl);
 	}
 #else
 	if (skip_partial_update) {

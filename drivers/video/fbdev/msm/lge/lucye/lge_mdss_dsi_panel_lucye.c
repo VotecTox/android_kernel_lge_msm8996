@@ -146,20 +146,9 @@ static int mdss_dsi_request_gpios(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
 			goto bklt_en_gpio_err;
 		}
 	}
-	if (gpio_is_valid(ctrl_pdata->mode_gpio)) {
-		rc = gpio_request(ctrl_pdata->mode_gpio, "panel_mode");
-		if (rc) {
-			pr_err("request panel mode gpio failed,rc=%d\n",
-					rc);
-			goto mode_gpio_err;
-		}
-	}
 
 	return rc;
 
-mode_gpio_err:
-	if (gpio_is_valid(ctrl_pdata->bklt_en_gpio))
-		gpio_free(ctrl_pdata->bklt_en_gpio);
 bklt_en_gpio_err:
 	gpio_free(ctrl_pdata->rst_gpio);
 	if (gpio_is_valid(ctrl_pdata->disp_en_gpio))
@@ -303,21 +292,6 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 			}
 		}
 #endif
-		if (gpio_is_valid(ctrl_pdata->mode_gpio)) {
-			bool out;
-
-			if (pinfo->mode_gpio_state == MODE_GPIO_HIGH)
-				out = true;
-			else if (pinfo->mode_gpio_state == MODE_GPIO_LOW)
-				out = false;
-
-			rc = gpio_direction_output(ctrl_pdata->mode_gpio, out);
-			if (rc) {
-				pr_err("%s: unable to set dir for mode gpio\n",
-					__func__);
-				goto exit;
-			}
-		}
 		if (ctrl_pdata->ctrl_state & CTRL_STATE_PANEL_INIT) {
 			pr_debug("%s: Panel Not properly turned OFF\n",
 					__func__);
@@ -335,8 +309,6 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 		}
 		gpio_set_value((ctrl_pdata->rst_gpio), 0);
 		gpio_free(ctrl_pdata->rst_gpio);
-		if (gpio_is_valid(ctrl_pdata->mode_gpio))
-			gpio_free(ctrl_pdata->mode_gpio);
 	}
 
 exit:

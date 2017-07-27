@@ -533,15 +533,17 @@ static int mdss_dsi_panel_power_ctrl(struct mdss_panel_data *pdata,
 	case MDSS_PANEL_POWER_LCD_DISABLED:
 		/* if LCD has not been disabled, then disable it now */
 		if ((pinfo->panel_power_state != MDSS_PANEL_POWER_LCD_DISABLED)
-		     && (pinfo->panel_power_state != MDSS_PANEL_POWER_OFF))
+		     && (pinfo->panel_power_state != MDSS_PANEL_POWER_OFF)) {
 #ifdef CONFIG_LGE_LCD_POWER_CTRL
 			if (pinfo->power_ctrl || pinfo->panel_dead) {
 				pr_err("[Display]  %s: panel power off , dynamic switching = %d ...\n", __func__,
                                 pdata->panel_info.dynamic_switch_pending);
 				ret = lge_panel_power_off(pdata);
-			} else
+			} else {
 #endif
-			ret = mdss_dsi_panel_power_off(pdata);
+				ret = mdss_dsi_panel_power_off(pdata);
+			}
+		}
 		break;
 	case MDSS_PANEL_POWER_ON:
 		if (mdss_dsi_is_panel_on_lp(pdata))
@@ -4438,6 +4440,7 @@ static int mdss_dsi_parse_gpio_params(struct platform_device *ctrl_pdev,
 	 *  while parsing the panel node, then do not override it
 	 */
 	struct mdss_panel_data *pdata = &ctrl_pdata->panel_data;
+	struct mdss_panel_info *pinfo = &(ctrl_pdata->panel_data.panel_info);
 
 	if (ctrl_pdata->disp_en_gpio <= 0) {
 		ctrl_pdata->disp_en_gpio = of_get_named_gpio(

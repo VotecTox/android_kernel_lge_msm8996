@@ -80,10 +80,6 @@ enum luminance_value {
 };
 
 #define LGE_TEMP_PATCH_FOR_4K_OUT_FORMAT_TO_RGB
-enum edid_sink_mode {
-	SINK_MODE_DVI,
-	SINK_MODE_HDMI
-};
 
 enum data_block_types {
 	RESERVED,
@@ -1026,6 +1022,7 @@ static void hdmi_edid_parse_Y420VDB(struct hdmi_edid_ctrl *edid_ctrl,
 		hdmi_edid_add_sink_y420_format(edid_ctrl, video_format);
 	}
 }
+#endif
 
 static bool hdmi_edid_is_luminance_value_present(u32 block_length,
 		enum luminance_value value)
@@ -1068,6 +1065,7 @@ static void hdmi_edid_parse_hdrdb(struct hdmi_edid_ctrl *edid_ctrl,
 			data_block[MINIMUM_LUMINANCE];
 }
 
+#ifndef LGE_TEMP_PATCH_FOR_4K_OUT_FORMAT_TO_RGB
 static void hdmi_edid_parse_Y420CMDB(struct hdmi_edid_ctrl *edid_ctrl,
 				     const u8 *in_buf)
 {

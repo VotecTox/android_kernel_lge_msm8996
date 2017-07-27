@@ -373,7 +373,7 @@ static void mdss_dsi_panel_bklt_dcs(struct mdss_dsi_ctrl_pdata *ctrl, int level)
 
 #if IS_ENABLED(CONFIG_LGE_DISPLAY_OVERRIDE_MDSS_DSI_PANEL_RESET)
 /*
- * mdss_dsi_panel_reset(), mdss_dsi_request_gpios() should be defined in other file.
+ * mdss_dsi_request_gpios() should be defined in other file.
  */
 #else
 static int mdss_dsi_request_gpios(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
@@ -414,6 +414,7 @@ rst_gpio_err:
 disp_en_gpio_err:
 	return rc;
 }
+#endif
 
 int mdss_dsi_bl_gpio_ctrl(struct mdss_panel_data *pdata, int enable)
 {
@@ -490,6 +491,11 @@ ret:
 	return rc;
 }
 
+#if IS_ENABLED(CONFIG_LGE_DISPLAY_OVERRIDE_MDSS_DSI_PANEL_RESET)
+/*
+ * mdss_dsi_panel_reset() should be defined in other file.
+ */
+#else
 int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 {
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
