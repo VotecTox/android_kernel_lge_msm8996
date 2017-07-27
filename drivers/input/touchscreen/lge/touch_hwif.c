@@ -261,21 +261,17 @@ int touch_request_irq(unsigned int irq, irq_handler_t handler,
 	return request_threaded_irq(irq, handler, thread_fn, flags, name, dev);
 }
 
-void touch_resend_irq(unsigned int irq)
+void touch_set_irq_pending(unsigned int irq)
 {
 	struct irq_desc *desc = irq_to_desc(irq);
+
+	TOUCH_D(BASE_INFO, "%s : irq=%d\n", __func__, irq);
 
 	if (desc) {
 		if (desc->istate & 0x00000200 /*IRQS_PENDING*/)
 			TOUCH_D(BASE_INFO, "irq(%d) pending\n", irq);
-		check_irq_resend(desc, irq);
+		irq_set_irqchip_state(irq, IRQCHIP_STATE_PENDING, true);
 	}
-}
-
-void touch_set_irq_pending(unsigned int irq)
-{
-	TOUCH_D(BASE_INFO, "%s : irq=%d\n", __func__, irq);
-	irq_set_pending(irq);
 }
 
 int touch_boot_mode(void)

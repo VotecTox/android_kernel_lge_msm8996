@@ -88,7 +88,6 @@ extern void touch_disable_irq(unsigned int irq);
 extern int touch_request_irq(unsigned int irq, irq_handler_t handler,
 		     irq_handler_t thread_fn,
 		     unsigned long flags, const char *name, void *dev);
-extern void touch_resend_irq(unsigned int irq);
 extern void touch_set_irq_pending(unsigned int irq);
 extern int touch_boot_mode(void);
 extern int touch_boot_mode_check(struct device *dev);

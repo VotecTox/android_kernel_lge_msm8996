@@ -224,8 +224,7 @@ static int touch_i2c_pm_resume(struct device *dev)
 		atomic_set(&ts->state.pm, DEV_PM_RESUME);
 		TOUCH_I("%s : DEV_PM_RESUME0\n", __func__);
 		touch_set_irq_pending(ts->irq);
-		touch_resend_irq(ts->irq);
-            return 0;
+		return 0;
 	}
 
 	atomic_set(&ts->state.pm, DEV_PM_RESUME);

@@ -244,17 +244,8 @@ int touch_request_irq(unsigned int irq, irq_handler_t handler,
 	return 0;
 }
 
-void touch_resend_irq(unsigned int irq)
-{
-}
-
 void touch_set_irq_pending(unsigned int irq)
 {
-}
-
-int touch_resend_irq(unsigned int irq)
-{
-	return 0;
 }
 
 int touch_boot_mode(void)

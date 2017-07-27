@@ -221,7 +221,6 @@ static int touch_spi_pm_resume(struct device *dev)
 	if (atomic_read(&ts->state.pm) == DEV_PM_SUSPEND_IRQ) {
 		atomic_set(&ts->state.pm, DEV_PM_RESUME);
 		touch_set_irq_pending(ts->irq);
-		touch_resend_irq(ts->irq);
 		TOUCH_I("%s : DEV_PM_RESUME\n", __func__);
 		return 0;
 	}

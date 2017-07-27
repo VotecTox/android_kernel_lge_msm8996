@@ -4304,8 +4304,7 @@ static int touch_pm_resume(struct device *dev)
 
 		atomic_set(&ts->state.pm, PM_RESUME);
 
-		irq_set_pending(ts->client->irq);
-		check_irq_resend(desc, ts->client->irq);
+		irq_set_irqchip_state(ts->client->irq, IRQCHIP_STATE_PENDING, true);
 
 		TOUCH_D(DEBUG_BASE_INFO, "resend interrupt");
 
