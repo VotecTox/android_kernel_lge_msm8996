@@ -20,6 +20,7 @@
 #include "msm8996-lucye_nao_us-panel.dtsi"
 #include "../msm8996-lucye-touch-sic-sw49408.dtsi"
 #include "msm8996-lucye_nao_us-usb.dtsi"
+#include "../msm8996-lucye_ufs.dtsi"
 
 / {
 	reserved-memory {
