@@ -552,3 +552,7 @@
 			};
 	};
 };
+
+&mdss_fb0 {
+	/delete-node/ qcom,cont-splash-memory;
+};
