@@ -27,10 +27,20 @@
 	qcom,platform-reset-gpio = <&tlmm 8 0>;
 
 	/delete-property/vddio-supply;
+
+	qcom,dsi-pref-prim-pan = <&dsi_sw49408_dsc_1440_2880_cmd>;
+	lge,extra-gpio-names = "vddio", "vpnl";
+
+	lge,gpio-vddio = <&tlmm 69 0>;
+	lge,gpio-vpnl = <&tlmm 94 0>;
 };
 
 &mdss_dsi0_pll {
 		/delete-property/ memory-region;
+};
+
+&mdss_dsi1 {
+	/delete-property/cell-index;
 };
 
 &mdss_dsi {
@@ -97,6 +107,30 @@
 			linux,code = <222>;
 			gpio-key,wakeup;
 			debounce-interval = <15>;
+		};
+	};
+
+	dsi_panel_pwr_supply: dsi_panel_pwr_supply {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		qcom,panel-supply-entry@0 {
+			reg = <0>;
+			qcom,supply-name = "lab";
+			qcom,supply-min-voltage = <4600000>;
+			qcom,supply-max-voltage = <6000000>;
+			qcom,supply-enable-load = <100000>;
+			qcom,supply-disable-load = <100>;
+		};
+
+		qcom,panel-supply-entry@1 {
+			reg = <1>;
+			qcom,supply-name = "ibb";
+			qcom,supply-min-voltage = <4600000>;
+			qcom,supply-max-voltage = <6000000>;
+			qcom,supply-enable-load = <100000>;
+			qcom,supply-disable-load = <100>;
+			qcom,supply-post-on-sleep = <20>;
 		};
 	};
 };
