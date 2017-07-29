@@ -73,6 +73,7 @@
 		qcom,mdss-dsi-lp11-init;
 		qcom,mdss-dsi-tx-eot-append;
 		qcom,mdss-mdp-transfer-time-us = <15200>;
+		qcom,mdss-dsi-host-esc-clk-freq-hz = <19200000>;
 
 		qcom,mdss-dsi-panel-hdr-enabled;
 		qcom,mdss-dsi-panel-hdr-color-primaries = <15050 15900 33500 15250 13500 31500 7500 2750>;
