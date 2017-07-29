@@ -10,9 +10,25 @@
  * GNU General Public License for more details.
  */
 
-&spi_12 {
-	status = "ok";
+&spi_12 {    /* BLSP-2 QUP6 */
+  status = "ok";
+  compatible = "qcom,spi-qup-v2";
+
+  #address-cells = <1>;
+  #size-cells = <0>;
+
+  reg-names = "spi_physical", "spi_bam_physical";
+  reg = <0x75ba000 0x600>, <0x7584000 0x2b000>;
+
+  interrupt-names = "spi_irq", "spi_bam_irq";
+  interrupts = <0 106 0>, <0 239 0>;
+
   spi-max-frequency = <40000000>;
+  qcom,master-id = <84>;
+
+  clock-names = "iface_clk", "core_clk";
+  clocks = <&clock_gcc clk_gcc_blsp2_ahb_clk>,
+       <&clock_gcc clk_gcc_blsp2_qup6_spi_apps_clk>;
 
   /* Assign runtime functions to pins */
   qcom,use-pinctrl;
@@ -20,7 +36,12 @@
   pinctrl-0 = <&spi_ts_active &spi_ts_cs_active>;
   pinctrl-1 = <&spi_ts_suspend &spi_ts_cs_suspend>;
 
+  qcom,infinite-mode = <0>;
+  qcom,ver-reg-exists;
+
   qcom,use-bam;
+  qcom,bam-consumer-pipe-index = <22>;
+  qcom,bam-producer-pipe-index = <23>;
   qcom,rt-priority;
 
   sw49407 {
@@ -113,163 +134,5 @@
     low_delta_thres = <350>;
     high_delta_thres = <600>;
     max_delta_cnt = <2>;
-  };
-};
-
-&tlmm {
-  pmx_reset_ts {
-    reset_active_ts: reset_active_ts {
-      mux {
-        pins = "gpio89";
-        function = "gpio";
-      };
-      config {
-        pins = "gpio89";
-        drive-strength = <6>;
-        bias-pull-up;
-      };
-    };
-
-    reset_suspend_ts: reset_suspend_ts {
-      mux {
-        pins = "gpio89";
-        function = "gpio";
-      };
-      config {
-        pins = "gpio89";
-        drive-strength = <6>;
-        bias-pull-down;
-      };
-    };
-  };
-
-  pmx_int_ts {
-    int_active_ts: int_active_ts {
-      mux {
-        pins = "gpio125";
-        function = "gpio";
-      };
-      config {
-        pins = "gpio125";
-        drive-strength = <2>;
-        bias-disable;
-      };
-    };
-
-    int_suspend_ts: int_suspend_ts {
-      mux {
-        pins = "gpio125";
-        function = "gpio";
-      };
-      config {
-        pins = "gpio125";
-        drive-strength = <2>;
-        bias-disable;
-      };
-    };
-  };
-
-  pmx_ts_reset {
-    ts_reset_active: ts_reset_active {
-      mux {
-        pins = "gpio89";
-        function = "gpio";
-      };
-      config {
-        pins = "gpio89";
-        drive-strength = <6>;
-        bias-pull-up;
-      };
-    };
-
-    ts_reset_suspend: ts_reset_suspend {
-      mux {
-        pins = "gpio89";
-        function = "gpio";
-      };
-      config {
-        pins = "gpio89";
-        drive-strength = <6>;
-        bias-pull-down;
-      };
-    };
-  };
-
-  pmx_ts_int {
-    ts_int_active: ts_int_active {
-      mux {
-        pins = "gpio125";
-        function = "gpio";
-      };
-      config {
-        pins = "gpio125";
-        drive-strength = <2>;
-        bias-pull-up;
-      };
-    };
-
-    ts_int_suspend: ts_int_suspend {
-      mux {
-        pins = "gpio125";
-        function = "gpio";
-      };
-      config {
-        pins = "gpio125";
-        drive-strength = <2>;
-        bias-disable;
-      };
-    };
-  };
-
-  pmx_spi_ts: pmx_spi_ts {
-    spi_ts_active: spi_ts_active {
-    /* TOUCH MOSI, MISO */
-      mux {
-        pins = "gpio85", "gpio86";
-        function = "blsp_spi12";
-      };
-      config {
-        pins = "gpio85", "gpio86";
-        drive-strength = <8>; /* 8MA */
-        bias-pull-up;
-      };
-    };
-
-    spi_ts_suspend: spi_ts_suspend {
-    /* TOUCH MOSI, MISO */
-      mux {
-        pins = "gpio85", "gpio86";
-        function = "blsp_spi12";
-      };
-      config {
-        pins = "gpio85", "gpio86";
-        drive-strength = <2>; /* 2MA */
-        bias-disable; /* No PULL */
-      };
-    };
-
-    spi_ts_cs_active: spi_ts_cs_active {
-      mux {
-        pins = "gpio87", "gpio88";
-        function = "blsp_spi12";
-      };
-      config {
-        pins = "gpio87", "gpio88";
-        drive-strength = <8>;
-        bias-pull-up;
-      };
-    };
-
-    spi_ts_cs_suspend: spi_ts_cs_suspend {
-      mux {
-        pins = "gpio87", "gpio88";
-        function = "blsp_spi12";
-      };
-      config {
-        pins = "gpio87", "gpio88";
-        drive-strength = <2>;
-        bias-disable; /* No PULL */
-      };
-    };
   };
 };

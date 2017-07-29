@@ -73,7 +73,6 @@
 		qcom,mdss-dsi-lp11-init;
 		qcom,mdss-dsi-tx-eot-append;
 		qcom,mdss-mdp-transfer-time-us = <15000>;
-		qcom,mdss-dsi-host-esc-clk-freq-hz = <19200000>;
 
 		qcom,mdss-dsi-on-command = [ /*initset v1.2*/
 			/* Manufacturer Command Protection */

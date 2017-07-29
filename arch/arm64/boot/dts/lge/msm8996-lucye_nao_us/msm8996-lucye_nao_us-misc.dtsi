@@ -10,6 +10,12 @@
  * GNU General Public License for more details.
  */
 
+/{
+	aliases {
+		i2c6 = &i2c_6;
+	};
+};
+
 /* LED setting */
 &spmi_bus {
 	qcom,pmi8994@3 {
@@ -62,7 +68,6 @@
 		};
 	};
 };
-
 &soc {
 	gen-vkeys {
 		compatible = "qcom,gen-vkeys";
@@ -87,17 +92,17 @@
 			debounce-interval = <15>;
 		};
 	};
+
+	pcie1: qcom,pcie@00608000 {
+		/delete-property/ perst-gpio;
+		/delete-property/ wake-gpio;
+	};
+
+	/delete-node/ msm_tspp@075e7000;
 };
 
 &blsp1_uart6 {
   reg = <0x7574000 0x100>;
   interrupts = <0 112 0>;
   status = "ok";
-};
-
-&pmi8994_pwm_4 {
-	qcom,channel-owner = "lcd_bl";
-	qcom,lpg-dtest-line = <4>;
-	qcom,dtest-output = <1>;
-	status = "okay";
 };
