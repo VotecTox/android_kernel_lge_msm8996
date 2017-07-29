@@ -190,6 +190,7 @@ int mdss_dsi_panel_cmd_read(struct mdss_dsi_ctrl_pdata *ctrl, char cmd0,
 	return mdss_dsi_cmdlist_put(ctrl, &cmdreq);
 }
 
+#ifndef CONFIG_LGE_DISPLAY_COMMON
 static void mdss_dsi_panel_apply_settings(struct mdss_dsi_ctrl_pdata *ctrl,
 			struct dsi_panel_cmds *pcmds)
 {
@@ -209,6 +210,7 @@ static void mdss_dsi_panel_apply_settings(struct mdss_dsi_ctrl_pdata *ctrl,
 
 	mdss_dsi_cmdlist_put(ctrl, &cmdreq);
 }
+#endif
 
 
 /* TODO: check if it is valid for hplus */
@@ -863,6 +865,9 @@ end:
 static int mdss_dsi_panel_apply_display_setting(struct mdss_panel_data *pdata,
 							u32 mode)
 {
+#ifdef CONFIG_LGE_DISPLAY_COMMON
+	pr_err("%s: Persistence mode is NOT IMPLEMENTED.\n", __func__);
+#else
 	struct mdss_dsi_ctrl_pdata *ctrl = NULL;
 	struct dsi_panel_cmds *lp_on_cmds;
 	struct dsi_panel_cmds *lp_off_cmds;
@@ -889,6 +894,7 @@ static int mdss_dsi_panel_apply_display_setting(struct mdss_panel_data *pdata,
 		return -EINVAL;
 
 	pr_debug("%s: Persistence mode %d applied\n", __func__, mode);
+#endif
 	return 0;
 }
 
