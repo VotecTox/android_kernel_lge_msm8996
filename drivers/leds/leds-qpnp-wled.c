@@ -1121,9 +1121,9 @@ int qpnp_wled_set_sink(int enable)
 	mutex_lock(&wled->cdev.led_access);
 
 	reg = 0x00;
-	rc = qpnp_wled_write_reg(wled,
-			QPNP_WLED_FS_CURR_REG(wled->sink_base,
-				wled->strings[i]), reg);
+	rc = qpnp_wled_write_reg(wled_base,
+			QPNP_WLED_FS_CURR_REG(wled_base->sink_base,
+				wled_base->strings[i]), reg);
 	if (rc){
 		pr_err("[AOD] disable sinks is failed\n");
 		goto unlock_mutex;
@@ -1133,31 +1133,31 @@ int qpnp_wled_set_sink(int enable)
 	/* Enable CABC and return to normal state.*/
 		for (i = 0; i < wled_base->num_strings; i++) {
 			if (wled_base->strings[i] >= QPNP_WLED_MAX_STRINGS) {
-				dev_err(&wled->pdev->dev, "Invalid string number\n");
+				dev_err(&wled_base->pdev->dev, "Invalid string number\n");
 				rc = -EINVAL;
 				goto unlock_mutex;
 			}
 
 			/* CABC enable */
-			rc = qpnp_wled_write_reg(wled,
-					QPNP_WLED_FS_CURR_REG(wled->sink_base,
-						wled->strings[i]), reg);
+			rc = qpnp_wled_write_reg(wled_base,
+					QPNP_WLED_FS_CURR_REG(wled_base->sink_base,
+						wled_base->strings[i]), reg);
 			if (rc < 0)
 				goto unlock_mutex;
 
 			reg &= QPNP_WLED_CABC_MASK;
 			reg |= (wled_base->en_cabc << QPNP_WLED_CABC_SHIFT);
-			rc = qpnp_wled_write_reg(wled,
-					QPNP_WLED_FS_CURR_REG(wled->sink_base,
-						wled->strings[i]), reg);
+			rc = qpnp_wled_write_reg(wled_base,
+					QPNP_WLED_FS_CURR_REG(wled_base->sink_base,
+						wled_base->strings[i]), reg);
 			if (rc)
 				goto unlock_mutex;
 		}
 		/* enable all sinks */
 		reg = 0x70;
-		rc = qpnp_wled_write_reg(wled,
-				QPNP_WLED_FS_CURR_REG(wled->sink_base,
-					wled->strings[i]), reg);
+		rc = qpnp_wled_write_reg(wled_base,
+				QPNP_WLED_FS_CURR_REG(wled_base->sink_base,
+					wled_base->strings[i]), reg);
 		if (rc) {
 			pr_err("[AOD] enable all sinks is failed\n");
 			goto unlock_mutex;
@@ -1170,24 +1170,24 @@ int qpnp_wled_set_sink(int enable)
 				rc =  -EINVAL;
 				goto unlock_mutex;
 			}
-			rc = qpnp_wled_write_reg(wled,
-					QPNP_WLED_FS_CURR_REG(wled->sink_base,
-						wled->strings[i]), reg);
+			rc = qpnp_wled_write_reg(wled_base,
+					QPNP_WLED_FS_CURR_REG(wled_base->sink_base,
+						wled_base->strings[i]), reg);
 			if (rc < 0)
 				goto unlock_mutex;
 
 			reg &= QPNP_WLED_CABC_MASK;
-			rc = qpnp_wled_write_reg(wled,
-					QPNP_WLED_FS_CURR_REG(wled->sink_base,
-						wled->strings[i]), reg);
+			rc = qpnp_wled_write_reg(wled_base,
+					QPNP_WLED_FS_CURR_REG(wled_base->sink_base,
+						wled_base->strings[i]), reg);
 			if (rc)
 				goto unlock_mutex;
 		}
 
 		reg = 0x20;	/* enable sink2 */
-		rc = qpnp_wled_write_reg(wled,
-				QPNP_WLED_FS_CURR_REG(wled->sink_base,
-					wled->strings[i]), reg);
+		rc = qpnp_wled_write_reg(wled_base,
+				QPNP_WLED_FS_CURR_REG(wled_base->sink_base,
+					wled_base->strings[i]), reg);
 		if (rc) {
 			pr_err("[AOD] sinks enable failed\n");
 			goto unlock_mutex;
@@ -1799,9 +1799,9 @@ static int qpnp_wled_config(struct qpnp_wled *wled)
 
 #if defined(CONFIG_LGE_DISPLAY_LUCYE_COMMON)
 	reg = QPNP_WLED_SWITCH_SLEW_RATE_x1;
-	rc = qpnp_wled_write_reg(wled,
-			QPNP_WLED_FS_CURR_REG(wled->sink_base,
-				wled->strings[i]), reg);
+	rc = qpnp_wled_write_reg(wled_base,
+			QPNP_WLED_FS_CURR_REG(wled_base->sink_base,
+				wled_base->strings[i]), reg);
 	if (rc)
 		return rc;
 #endif
