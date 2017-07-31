@@ -55,6 +55,7 @@ struct hw_pd_dev {
 
 	/* usb */
 	struct power_supply *usb_psy;
+	struct power_supply_desc usb_psy_desc;
 
 	int mode;
 	int pr;
@@ -66,8 +67,10 @@ struct hw_pd_dev {
 	struct regulator *vbus_reg;
 	struct delayed_work otg_work;
 
-	struct power_supply chg_psy;
+	struct power_supply *chg_psy;
+	struct power_supply_desc chg_psy_desc;
 	struct power_supply *batt_psy;
+	struct power_supply_desc batt_psy_desc;
 
 	bool is_otg;
 	bool is_present;

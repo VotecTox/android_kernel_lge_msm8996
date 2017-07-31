@@ -26,10 +26,10 @@ static void set_property_to_battery(struct hw_pd_dev *dev,
 				    enum power_supply_property property,
 				    union power_supply_propval *prop)
 {
-	int rc;
+	//int rc;
 
-	if (!dev->batt_psy) {
-		dev->batt_psy = power_supply_get_by_name("battery");
+	/*if (!dev->batt_psy) {
+		dev->batt_psy_desc = power_supply_get_by_name("battery");
 		if (!dev->batt_psy) {
 			PRINT("battery psy doesn't preapred\n");
 			dev->batt_psy = 0;
@@ -37,10 +37,11 @@ static void set_property_to_battery(struct hw_pd_dev *dev,
 		}
 	}
 
-	rc = dev->batt_psy->set_property(dev->batt_psy, property, prop);
+	rc = dev->batt_psy_desc->set_property(dev->batt_psy, property, prop);
 	if (rc < 0)
 		PRINT("battery psy doesn't support reading prop %d rc = %d\n",
-		      property, rc);
+		      property, rc);*/
+	return;
 }
 
 #define OTG_WORK_DELAY 1000
@@ -82,7 +83,7 @@ static void otg_work(struct work_struct *w)
 	}
 }
 
-static int chg_get_property(struct power_supply *psy,
+/*static int chg_get_property(struct power_supply *psy,
 			    enum power_supply_property prop,
 			    union power_supply_propval *val)
 {
@@ -113,8 +114,8 @@ static int chg_get_property(struct power_supply *psy,
 
 	case POWER_SUPPLY_PROP_TYPE:
 		DEBUG("%s: type(%s)\n", __func__,
-			chg_to_string(dev->chg_psy.type));
-		val->intval = dev->chg_psy.type;
+			chg_to_string(dev->chg_psy_desc.type));
+		val->intval = dev->chg_psy_desc.type;
 		break;
 
 	case POWER_SUPPLY_PROP_CURRENT_CAPABILITY:
@@ -177,7 +178,7 @@ static int chg_set_property(struct power_supply *psy,
 	}
 
 	return 0;
-}
+}*/
 
 static int chg_is_writeable(struct power_supply *psy,
 			    enum power_supply_property prop)
@@ -197,6 +198,16 @@ static int chg_is_writeable(struct power_supply *psy,
 	return rc;
 }
 
+static const struct power_supply_desc chg_desc = {
+	.name			= "usb_pd",
+	.type			= POWER_SUPPLY_TYPE_UNKNOWN,
+	.properties		= chg_properties,
+	.num_properties		= ARRAY_SIZE(chg_properties),
+	.property_is_writeable = chg_is_writeable,
+	//.supplied_to = chg_supplicants,
+	//.num_supplicants = ARRAY_SIZE(chg_supplicants),
+};
+
 int charger_init(struct hw_pd_dev *dev)
 {
 	struct device *cdev = dev->dev;
@@ -209,19 +220,14 @@ int charger_init(struct hw_pd_dev *dev)
 	}
 	power_supply_set_present(dev->usb_psy, 0);
 
-	dev->chg_psy.name = "usb_pd";
-	dev->chg_psy.type = POWER_SUPPLY_TYPE_UNKNOWN;
-	dev->chg_psy.get_property = chg_get_property;
-	dev->chg_psy.set_property = chg_set_property;
-	dev->chg_psy.property_is_writeable = chg_is_writeable;
-	dev->chg_psy.properties = chg_properties;
-	dev->chg_psy.num_properties = ARRAY_SIZE(chg_properties);
+	/*dev->chg_psy_desc.get_property = chg_get_property;
+	dev->chg_psy_desc.set_property = chg_set_property;*/
 	dev->chg_psy.supplied_to = chg_supplicants;
 	dev->chg_psy.num_supplicants = ARRAY_SIZE(chg_supplicants);
 
 	INIT_DELAYED_WORK(&dev->otg_work, otg_work);
 
-	rc = power_supply_register(cdev, &dev->chg_psy);
+	rc = power_supply_register(cdev, &chg_desc, NULL);
 	if (rc < 0) {
 		PRINT("Unalbe to register ctype_psy rc = %d\n", rc);
 		return -EPROBE_DEFER;

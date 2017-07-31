@@ -279,6 +279,11 @@ enum power_supply_type {
 	POWER_SUPPLY_TYPE_TYPEC,	/* Type-C */
 	POWER_SUPPLY_TYPE_UFP,		/* Type-C UFP */
 	POWER_SUPPLY_TYPE_DFP,		/* TYpe-C DFP */
+#ifdef CONFIG_LGE_USB_TYPE_C
+	POWER_SUPPLY_TYPE_CTYPE,	/* 18  USB Type-C Charger based on CC controller */
+	POWER_SUPPLY_TYPE_CTYPE_PD,	/* 19  USB Type-C Charger based on PD Message */
+	POWER_SUPPLY_TYPE_CTYPE_DEBUG_ACCESSORY, /* Type-C DebugAccessoryMode */
+#endif
 };
 
 /* Indicates USB Type-C CC connection status */
