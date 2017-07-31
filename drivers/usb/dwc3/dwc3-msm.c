@@ -173,7 +173,9 @@ struct dwc3_msm {
 	struct dbm		*dbm;
 
 	/* VBUS regulator for host mode */
+#ifndef CONFIG_LGE_USB_TYPE_C
 	struct regulator	*vbus_reg;
+#endif
 	int			vbus_retry_count;
 	bool			resume_pending;
 	atomic_t                pm_suspended;
@@ -199,6 +201,10 @@ struct dwc3_msm {
 	enum usb_device_speed	max_rh_port_speed;
 	unsigned int		tx_fifo_size;
 	bool			vbus_active;
+#ifdef CONFIG_LGE_USB_TYPE_C
+	bool			vbus_active_pending;
+	unsigned int		dp_dm;
+#endif
 	bool			suspend;
 	bool			disable_host_mode_pm;
 	enum dwc3_id_state	id_state;
@@ -246,6 +252,10 @@ struct dwc3_msm {
 
 static void dwc3_pwr_event_handler(struct dwc3_msm *mdwc);
 static int dwc3_msm_gadget_vbus_draw(struct dwc3_msm *mdwc, unsigned mA);
+
+#if defined (CONFIG_LGE_TOUCH_CORE)
+void touch_notify_connect(int value);
+#endif
 
 /**
  *
@@ -3207,8 +3217,10 @@ static int dwc3_msm_remove(struct platform_device *pdev)
 	if (mdwc->bus_perf_client)
 		msm_bus_scale_unregister_client(mdwc->bus_perf_client);
 
+#ifndef CONFIG_LGE_USB_TYPE_C
 	if (!IS_ERR_OR_NULL(mdwc->vbus_reg))
 		regulator_disable(mdwc->vbus_reg);
+#endif
 
 	disable_irq(mdwc->hs_phy_irq);
 	if (mdwc->ss_phy_irq)
@@ -3357,6 +3369,7 @@ static int dwc3_otg_start_host(struct dwc3_msm *mdwc, int on)
 	if (!dwc->xhci)
 		return -EINVAL;
 
+#ifndef CONFIG_LGE_USB_TYPE_C
 	/*
 	 * The vbus_reg pointer could have multiple values
 	 * NULL: regulator_get() hasn't been called, or was previously deferred
@@ -3373,6 +3386,7 @@ static int dwc3_otg_start_host(struct dwc3_msm *mdwc, int on)
 			return -EPROBE_DEFER;
 		}
 	}
+#endif
 
 	if (on) {
 		dev_dbg(mdwc->dev, "%s: turn on host\n", __func__);
@@ -3385,6 +3399,7 @@ static int dwc3_otg_start_host(struct dwc3_msm *mdwc, int on)
 		dbg_event(0xFF, "StrtHost gync",
 			atomic_read(&mdwc->dev->power.usage_count));
 		usb_phy_notify_connect(mdwc->hs_phy, USB_SPEED_HIGH);
+#ifndef CONFIG_LGE_USB_TYPE_C
 		if (!IS_ERR(mdwc->vbus_reg))
 			ret = regulator_enable(mdwc->vbus_reg);
 		if (ret) {
@@ -3396,6 +3411,7 @@ static int dwc3_otg_start_host(struct dwc3_msm *mdwc, int on)
 				atomic_read(&mdwc->dev->power.usage_count));
 			return ret;
 		}
+#endif
 
 		dwc3_set_mode(dwc, DWC3_GCTL_PRTCAP_HOST);
 
@@ -3417,8 +3433,10 @@ static int dwc3_otg_start_host(struct dwc3_msm *mdwc, int on)
 			dev_err(mdwc->dev,
 				"%s: failed to add XHCI pdev ret=%d\n",
 				__func__, ret);
+#ifndef CONFIG_LGE_USB_TYPE_C
 			if (!IS_ERR(mdwc->vbus_reg))
 				regulator_disable(mdwc->vbus_reg);
+#endif
 			mdwc->hs_phy->flags &= ~PHY_HOST_MODE;
 			mdwc->ss_phy->flags &= ~PHY_HOST_MODE;
 			pm_runtime_put_sync(mdwc->dev);
@@ -3457,6 +3475,7 @@ static int dwc3_otg_start_host(struct dwc3_msm *mdwc, int on)
 	} else {
 		dev_dbg(mdwc->dev, "%s: turn off host\n", __func__);
 
+#ifndef CONFIG_LGE_USB_TYPE_C
 		usb_unregister_atomic_notify(&mdwc->usbdev_nb);
 		if (!IS_ERR(mdwc->vbus_reg))
 			ret = regulator_disable(mdwc->vbus_reg);
@@ -3464,6 +3483,7 @@ static int dwc3_otg_start_host(struct dwc3_msm *mdwc, int on)
 			dev_err(mdwc->dev, "unable to disable vbus_reg\n");
 			return ret;
 		}
+#endif
 
 		cancel_delayed_work_sync(&mdwc->perf_vote_work);
 		msm_dwc3_perf_vote_update(mdwc, false);
@@ -3776,6 +3796,9 @@ static void dwc3_otg_sm_work(struct work_struct *w)
 				mdwc->otg_state = OTG_STATE_A_IDLE;
 				goto ret;
 			}
+#if defined (CONFIG_LGE_TOUCH_CORE)
+			touch_notify_connect(6);
+#endif
 		}
 		break;
 
